@@ -32,18 +32,18 @@
             transition: all 0.15s ease;
         }
 
-        /* フォーカス中（編集中） */
-        table input:focus {
+            /* フォーカス中（編集中） */
+            table input:focus {
             border-color: #4a90e2; /* 濃い青 */
             background: #eef6ff; /* 薄い青背景 */
-            outline: none;
-        }
+                outline: none;
+            }
 
-        /* フォーカスが外れた瞬間（確定） */
-        table input:not(:focus) {
+            /* フォーカスが外れた瞬間（確定） */
+            table input:not(:focus) {
             border-color: #ddd; /* 薄いグレー */
             background: #fafafa; /* ほんのり薄い背景 */
-        }
+            }
     </style>
 </head>
 <body>
@@ -212,11 +212,11 @@
 
             // ヘッダ生成
             headerRow.innerHTML = `
-                                            <th>名前</th>
-                                            ${data.category_columns.map(c => `<th>${c}</th>`).join("")}
-                                            ${data.annotation_columns.map(a => `<th>${a.label}</th>`).join("")}
-                                            <th>ファイル</th>
-                                        `;
+                    <th>名前</th>
+                    ${data.category_columns.map(c => `<th>${c}</th>`).join("")}
+                    ${data.annotation_columns.map(a => `<th>${a.label}</th>`).join("")}
+                    <th>ファイル</th>
+                `;
 
             // 行生成
             tbody.innerHTML = "";
@@ -227,7 +227,13 @@
 
                 // ★ 名前列
                 if (editMode) {
-                    html += `<td><input value="${item.name}"></td>`;
+                    html += `<td>
+                            <input class="edit-cell"
+                                   data-original="${item.name}"
+                                   data-path="${item.path}"
+                                   data-column="__name__"
+                                   value="${item.name}">
+                        </td>`;
                 } else {
                     html += `<td>${item.name}</td>`;
                 }
@@ -237,7 +243,14 @@
 
                 // ★ アノテーション列
                 if (editMode) {
-                    html += item.annotations.map(v => `<td><input value="${v}"></td>`).join("");
+                    html += item.annotations.map((v, i) => `
+                            <td>
+                                <input class="edit-cell"
+                                       data-original="${v}"
+                                       data-path="${item.path}"
+                                       data-column="${data.annotation_columns[i].id}"
+                                       value="${v}">
+                            </td>`).join("");
                 } else {
                     html += item.annotations.map(v => `<td>${v}</td>`).join("");
                 }
@@ -247,6 +260,48 @@
 
                 tr.innerHTML = html;
                 tbody.appendChild(tr);
+            });
+
+            if (editMode) {
+                attachEditHandlers();
+            }
+        }
+
+        // =====================================================
+        // STEP6.5-A2: 値更新 UI のみ（保存 API はまだ呼ばない）
+        // =====================================================
+        function attachEditHandlers() {
+            document.querySelectorAll(".edit-cell").forEach(input => {
+
+                // Enter / ESC
+                input.addEventListener("keydown", e => {
+                    if (e.key === "Enter") {
+                        // ★ 保存 API 呼び出し予定地
+                        // saveValue(input.dataset.path, input.dataset.column, input.value);
+
+                        input.dataset.original = input.value;
+                        input.blur();
+                    }
+                    if (e.key === "Escape") {
+                        input.value = input.dataset.original;
+                        input.blur();
+                    }
+                });
+
+                // フォーカスアウト
+                input.addEventListener("blur", e => {
+                    const newValue = input.value;
+                    if (newValue === input.dataset.original) return;
+
+                    const ok = confirm("変更を保存しますか？");
+                    if (ok) {
+                        // ★ 保存 API 呼び出し予定地
+                        // saveValue(input.dataset.path, input.dataset.column, newValue);
+                        input.dataset.original = input.value;
+                    } else {
+                        input.value = input.dataset.original;
+                    }
+                });
             });
         }
 
