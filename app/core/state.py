@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Optional, List
+from typing import List
 
 
 class AppState:
@@ -9,17 +9,17 @@ class AppState:
     """
 
     def __init__(self, identity_path: str):
-        self.identity_path: Optional[Path] = None
-        self.instance_root: Optional[Path] = None
+        self.identity_path: Path
+        self.instance_root: Path
         self.sibling_folders: List[Path] = []
-        
+       
         # STEP2: スキャン結果
         self.files: List[Path] = []
 
-        self.load_identity(identity_path)
-        self.scan_files()
+        self._load_identity(identity_path)
+        self._scan_files()
 
-    def load_identity(self, identity: str) -> None:
+    def _load_identity(self, identity: str) -> None:
         identity_path = Path(identity).resolve()
 
         if not identity_path.exists() or not identity_path.is_file():
@@ -33,15 +33,12 @@ class AppState:
             p for p in self.instance_root.iterdir() if p.is_dir()
         ]
 
-    def scan_files(self) -> None:
+    def _scan_files(self) -> None:
         """
         STEP2: インスタンスルートと同階層のフォルダ（sibling_folders）だけを
         再帰的にスキャンし、ファイル一覧を self.files に格納する。
         identity と同階層の直下ファイルはスキャンしない。
         """
-        if self.instance_root is None:
-            raise RuntimeError("identity not loaded")
-
         result: List[Path] = []
 
         # 同階層フォルダごとに再帰スキャン
