@@ -28,34 +28,34 @@
     <h1>Asset Meta Manager</h1>
     <p id="count"></p>
 
-    <h2>フォルダスキーマ編集</h2>
+    <h2>カテゴリ列（フォルダ名取得列）編集</h2>
 
     <form id="add-form">
-        <input type="text" id="schema-name" placeholder="列名">
+        <input type="text" id="category-columns-name" placeholder="列名">
         <button type="submit">追加</button>
     </form>
 
-    <ul id="schema-list"></ul>
+    <ul id="category-columns-list"></ul>
 
     <script>
-        async function loadSchema() {
-            const res = await fetch("/schema");
+        async function loadCategoryColumns() {
+            const res = await fetch("/category_columns");
             const data = await res.json();
 
-            const ul = document.getElementById("schema-list");
+            const ul = document.getElementById("category-columns-list");
             ul.innerHTML = "";
 
-            data.schema.forEach(name => {
+            data.category_columns.forEach(name => {
                 const li = document.createElement("li");
                 li.textContent = name + " ";
                 const btn = document.createElement("button");
                 btn.textContent = "削除";
                 btn.onclick = async () => {
-                    await fetch("/schema/remove", {
+                    await fetch("/category_columns/remove", {
                         method: "POST",
                         body: new URLSearchParams({ name })
                     });
-                    loadSchema();
+                    loadCategoryColumns();
                     load(); // ファイル一覧も更新
                 };
                 li.appendChild(btn);
@@ -65,17 +65,17 @@
 
         document.getElementById("add-form").onsubmit = async (e) => {
             e.preventDefault();
-            const name = document.getElementById("schema-name").value;
-            await fetch("/schema/add", {
+            const name = document.getElementById("category-columns-name").value;
+            await fetch("/category_columns/add", {
                 method: "POST",
                 body: new URLSearchParams({ name })
             });
-            document.getElementById("schema-name").value = "";
-            loadSchema();
+            document.getElementById("category-columns-name").value = "";
+            loadCategoryColumns();
             load(); // ファイル一覧も更新
         };
 
-        loadSchema();
+        loadCategoryColumns();
     </script>
 
     <table>

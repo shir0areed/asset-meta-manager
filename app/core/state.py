@@ -23,27 +23,27 @@ class AppState:
         self._ensure_meta_files()  # ★ STEP3
         self._init_db()
 
-    def load_schema(self) -> list[str]:
+    def load_category_columns(self) -> list[str]:
         conn = sqlite3.connect(self.identity_path)
         cur = conn.cursor()
-        cur.execute("SELECT name FROM folder_schema ORDER BY id")
+        cur.execute("SELECT name FROM category_columns ORDER BY id")
         rows = [r[0] for r in cur.fetchall()]
         conn.close()
         return rows
 
 
-    def add_schema(self, name: str):
+    def add_category_columns(self, name: str):
         conn = sqlite3.connect(self.identity_path)
         cur = conn.cursor()
-        cur.execute("INSERT OR IGNORE INTO folder_schema (name) VALUES (?)", (name,))
+        cur.execute("INSERT OR IGNORE INTO category_columns (name) VALUES (?)", (name,))
         conn.commit()
         conn.close()
 
 
-    def remove_schema(self, name: str):
+    def remove_category_columns(self, name: str):
         conn = sqlite3.connect(self.identity_path)
         cur = conn.cursor()
-        cur.execute("DELETE FROM folder_schema WHERE name = ?", (name,))
+        cur.execute("DELETE FROM category_columns WHERE name = ?", (name,))
         conn.commit()
         conn.close()
 
@@ -98,7 +98,7 @@ class AppState:
 
         # スキーマテーブル
         cur.execute("""
-            CREATE TABLE IF NOT EXISTS folder_schema (
+            CREATE TABLE IF NOT EXISTS category_columns (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT UNIQUE NOT NULL
             )

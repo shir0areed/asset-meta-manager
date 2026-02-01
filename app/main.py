@@ -39,7 +39,7 @@ def scan_result():
     """
     state = app.state.manager
     root = state.instance_root  # identity の親フォルダ
-    schema = state.load_schema()
+    category_columns = state.load_category_columns()
 
     result = []
 
@@ -53,7 +53,7 @@ def scan_result():
         name = p.stem
 
         # ★ STEP5-A：値は全部空欄
-        folder_values = [""] * len(schema)
+        folder_values = [""] * len(category_columns)
 
         result.append({
             "path": rel_posix,
@@ -62,7 +62,7 @@ def scan_result():
         })
 
     return {
-        "schema": schema,
+        "category_columns": category_columns,
         "files": result,
     }
 
@@ -87,23 +87,23 @@ def download_file(path: str = Query(..., description="Relative POSIX path from i
 
     return FileResponse(abs_path, filename=abs_path.name)
 
-@app.get("/schema")
-def get_schema():
+@app.get("/category_columns")
+def get_category_columns():
     state = app.state.manager
-    return {"schema": state.load_schema()}
+    return {"category_columns": state.load_category_columns()}
 
 
-@app.post("/schema/add")
-def add_schema(name: str = Form(...)):
+@app.post("/category_columns/add")
+def add_category_columns(name: str = Form(...)):
     state = app.state.manager
-    state.add_schema(name)
+    state.add_category_columns(name)
     return {"ok": True}
 
 
-@app.post("/schema/remove")
-def remove_schema(name: str = Form(...)):
+@app.post("/category_columns/remove")
+def remove_category_columns(name: str = Form(...)):
     state = app.state.manager
-    state.remove_schema(name)
+    state.remove_category_columns(name)
     return {"ok": True}
 
 
