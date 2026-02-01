@@ -28,6 +28,21 @@
     <h1>Asset Meta Manager</h1>
     <p id="count"></p>
 
+    <button id="edit-toggle">編集モード: OFF</button>
+
+    <script>
+        let editMode = false;
+
+        document.getElementById("edit-toggle").onclick = () => {
+            editMode = !editMode;
+            document.getElementById("edit-toggle").textContent =
+                editMode ? "編集モード: ON" : "編集モード: OFF";
+
+            updateEditModeUI(); // ★ 列編集 UI の表示切り替え
+            load(); // 再描画
+        };
+    </script>
+
     <h2>カテゴリ列（フォルダ名取得列）編集</h2>
 
     <form id="category-add-form">
@@ -137,17 +152,22 @@
         loadAnnotationColumns();
     </script>
 
-    <button id="edit-toggle">編集モード: OFF</button>
-
     <script>
-        let editMode = false;
+        function updateEditModeUI() {
+            const display = editMode ? "block" : "none";
 
-        document.getElementById("edit-toggle").onclick = () => {
-            editMode = !editMode;
-            document.getElementById("edit-toggle").textContent =
-                editMode ? "編集モード: ON" : "編集モード: OFF";
-            load(); // 再描画
-        };
+            // カテゴリ列編集
+            document.getElementById("category-add-form").style.display = display;
+            document.getElementById("category-columns-list").style.display = display;
+
+            // アノテーション列編集
+            const annForm = document.getElementById("annotation-add-form");
+            const annList = document.getElementById("annotation-columns-list");
+
+            if (annForm) annForm.style.display = display;
+            if (annList) annList.style.display = display;
+        }
+        updateEditModeUI();
     </script>
 
     <table>
@@ -170,11 +190,11 @@
 
             // ヘッダ生成
             headerRow.innerHTML = `
-                                    <th>名前</th>
-                                    ${data.category_columns.map(c => `<th>${c}</th>`).join("")}
-                                    ${data.annotation_columns.map(a => `<th>${a.label}</th>`).join("")}
-                                    <th>ファイル</th>
-                                `;
+                                            <th>名前</th>
+                                            ${data.category_columns.map(c => `<th>${c}</th>`).join("")}
+                                            ${data.annotation_columns.map(a => `<th>${a.label}</th>`).join("")}
+                                            <th>ファイル</th>
+                                        `;
 
             // 行生成
             tbody.innerHTML = "";
