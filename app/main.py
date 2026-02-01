@@ -52,13 +52,19 @@ def scan_result():
 
         name = p.stem
 
-        # ★ STEP5-A：値は全部空欄
-        folder_values = [""] * len(category_columns)
+        # 相対パスを分解してフォルダ部分を抽出
+        parts = rel_posix.split("/")          # ["foo","bar","buzz","data.zip"]
+        folder_parts = parts[:-1]             # ["foo","bar","buzz"]
+
+        # ★ STEP5-B：カテゴリ列にフォルダ名を割り当てる
+        categories = []
+        for i in range(len(category_columns)):
+            categories.append(folder_parts[i] if i < len(folder_parts) else "")
 
         result.append({
             "path": rel_posix,
             "name": name,
-            "folders": folder_values,
+            "categories": categories,
         })
 
     return {

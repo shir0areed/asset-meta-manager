@@ -80,10 +80,7 @@
 
     <table>
         <thead>
-            <tr>
-                <th>名前</th>
-                <th>ファイル</th>
-            </tr>
+            <tr id="header-row"></tr>
         </thead>
         <tbody id="file-table"></tbody>
     </table>
@@ -93,20 +90,31 @@
             const res = await fetch("/scan-result");
             const data = await res.json();
 
+            const headerRow = document.getElementById("header-row");
             const tbody = document.getElementById("file-table");
             const count = document.getElementById("count");
 
             count.textContent = `ファイル数: ${data.files.length}`;
 
-            data.files.forEach(item => {
-                const name = item.name;
-                const path = item.path;
+            // ヘッダ生成
+            headerRow.innerHTML = `
+                    <th>名前</th>
+                    ${data.category_columns.map(c => `<th>${c}</th>`).join("")}
+                    <th>ファイル</th>
+                `;
 
+            // 行生成
+            tbody.innerHTML = "";
+            data.files.forEach(item => {
                 const tr = document.createElement("tr");
-                tr.innerHTML = `
-                        <td>${name}</td>
-                        <td><a href="/file?path=${encodeURIComponent(path)}" download>Download</a></td>
-                    `;
+
+                let html = `<td>${item.name}</td>`;
+
+                html += item.categories.map(v => `<td>${v}</td>`).join("");
+
+                html += `<td><a href="/file?path=${encodeURIComponent(item.path)}" download>Download</a></td>`;
+
+                tr.innerHTML = html;
                 tbody.appendChild(tr);
             });
         }
