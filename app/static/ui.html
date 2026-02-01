@@ -28,6 +28,56 @@
     <h1>Asset Meta Manager</h1>
     <p id="count"></p>
 
+    <h2>フォルダスキーマ編集</h2>
+
+    <form id="add-form">
+        <input type="text" id="schema-name" placeholder="列名">
+        <button type="submit">追加</button>
+    </form>
+
+    <ul id="schema-list"></ul>
+
+    <script>
+        async function loadSchema() {
+            const res = await fetch("/schema");
+            const data = await res.json();
+
+            const ul = document.getElementById("schema-list");
+            ul.innerHTML = "";
+
+            data.schema.forEach(name => {
+                const li = document.createElement("li");
+                li.textContent = name + " ";
+                const btn = document.createElement("button");
+                btn.textContent = "削除";
+                btn.onclick = async () => {
+                    await fetch("/schema/remove", {
+                        method: "POST",
+                        body: new URLSearchParams({ name })
+                    });
+                    loadSchema();
+                    load(); // ファイル一覧も更新
+                };
+                li.appendChild(btn);
+                ul.appendChild(li);
+            });
+        }
+
+        document.getElementById("add-form").onsubmit = async (e) => {
+            e.preventDefault();
+            const name = document.getElementById("schema-name").value;
+            await fetch("/schema/add", {
+                method: "POST",
+                body: new URLSearchParams({ name })
+            });
+            document.getElementById("schema-name").value = "";
+            loadSchema();
+            load(); // ファイル一覧も更新
+        };
+
+        loadSchema();
+    </script>
+
     <table>
         <thead>
             <tr>
@@ -54,9 +104,9 @@
 
                 const tr = document.createElement("tr");
                 tr.innerHTML = `
-                    <td>${name}</td>
-                    <td><a href="/file?path=${encodeURIComponent(path)}" download>Download</a></td>
-                `;
+                        <td>${name}</td>
+                        <td><a href="/file?path=${encodeURIComponent(path)}" download>Download</a></td>
+                    `;
                 tbody.appendChild(tr);
             });
         }

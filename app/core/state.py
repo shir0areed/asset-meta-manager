@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import List
 import json
+import sqlite3
 
 META_SUFFIX = ".ameta"
 
@@ -20,6 +21,31 @@ class AppState:
         self._load_identity(identity_path)
         self._scan_files()
         self._ensure_meta_files()  # ★ STEP3
+        self._init_db()
+
+    def load_schema(self) -> list[str]:
+        conn = sqlite3.connect(self.identity_path)
+        cur = conn.cursor()
+        cur.execute("SELECT name FROM folder_schema ORDER BY id")
+        rows = [r[0] for r in cur.fetchall()]
+        conn.close()
+        return rows
+
+
+    def add_schema(self, name: str):
+        conn = sqlite3.connect(self.identity_path)
+        cur = conn.cursor()
+        cur.execute("INSERT OR IGNORE INTO folder_schema (name) VALUES (?)", (name,))
+        conn.commit()
+        conn.close()
+
+
+    def remove_schema(self, name: str):
+        conn = sqlite3.connect(self.identity_path)
+        cur = conn.cursor()
+        cur.execute("DELETE FROM folder_schema WHERE name = ?", (name,))
+        conn.commit()
+        conn.close()
 
     # ------------------------------
     # private methods
@@ -65,3 +91,18 @@ class AppState:
             if not meta_path.exists():
                 # 空 JSON を書き込む
                 meta_path.write_text("{}", encoding="utf-8")
+
+    def _init_db(self):
+        conn = sqlite3.connect(self.identity_path)
+        cur = conn.cursor()
+
+        # スキーマテーブル
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS folder_schema (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE NOT NULL
+            )
+        """)
+
+        conn.commit()
+        conn.close()

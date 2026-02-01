@@ -1,5 +1,5 @@
 import argparse
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, Form
 from fastapi.responses import HTMLResponse, FileResponse
 from pathlib import Path
 import uvicorn
@@ -39,6 +39,7 @@ def scan_result():
     """
     state = app.state.manager
     root = state.instance_root  # identity の親フォルダ
+    schema = state.load_schema()
 
     result = []
 
@@ -51,13 +52,18 @@ def scan_result():
 
         name = p.stem
 
+        # ★ STEP5-A：値は全部空欄
+        folder_values = [""] * len(schema)
+
         result.append({
             "path": rel_posix,
             "name": name,
+            "folders": folder_values,
         })
 
     return {
-        "files": result
+        "schema": schema,
+        "files": result,
     }
 
 
@@ -80,6 +86,25 @@ def download_file(path: str = Query(..., description="Relative POSIX path from i
     abs_path = (root / Path(path)).resolve()
 
     return FileResponse(abs_path, filename=abs_path.name)
+
+@app.get("/schema")
+def get_schema():
+    state = app.state.manager
+    return {"schema": state.load_schema()}
+
+
+@app.post("/schema/add")
+def add_schema(name: str = Form(...)):
+    state = app.state.manager
+    state.add_schema(name)
+    return {"ok": True}
+
+
+@app.post("/schema/remove")
+def remove_schema(name: str = Form(...)):
+    state = app.state.manager
+    state.remove_schema(name)
+    return {"ok": True}
 
 
 def main():
