@@ -78,6 +78,63 @@
         loadCategoryColumns();
     </script>
 
+    <h2>アノテーション列（メタデータ取得列）編集</h2>
+
+    <form id="annotation-add-form">
+        <input type="text" id="annotation-label" placeholder="列名">
+        <input type="text" id="annotation-id" placeholder="メタデータキー">
+        <button type="submit">追加</button>
+    </form>
+
+    <ul id="annotation-columns-list"></ul>
+
+    <script>
+        async function loadAnnotationColumns() {
+            const res = await fetch("/annotation_columns");
+            const data = await res.json();
+
+            const ul = document.getElementById("annotation-columns-list");
+            ul.innerHTML = "";
+
+            data.annotation_columns.forEach(col => {
+                const li = document.createElement("li");
+                li.textContent = `${col.label} (${col.id}) `;
+
+                const btn = document.createElement("button");
+                btn.textContent = "削除";
+                btn.onclick = async () => {
+                    await fetch("/annotation_columns/remove", {
+                        method: "POST",
+                        body: new URLSearchParams({ column_id: col.id })
+                    });
+                    loadAnnotationColumns();
+                };
+
+                li.appendChild(btn);
+                ul.appendChild(li);
+            });
+        }
+
+        document.getElementById("annotation-add-form").onsubmit = async (e) => {
+            e.preventDefault();
+
+            const label = document.getElementById("annotation-label").value;
+            const column_id = document.getElementById("annotation-id").value;
+
+            await fetch("/annotation_columns/add", {
+                method: "POST",
+                body: new URLSearchParams({ label, column_id })
+            });
+
+            document.getElementById("annotation-label").value = "";
+            document.getElementById("annotation-id").value = "";
+
+            loadAnnotationColumns();
+        };
+
+        loadAnnotationColumns();
+    </script>
+
     <table>
         <thead>
             <tr id="header-row"></tr>
@@ -98,10 +155,10 @@
 
             // ヘッダ生成
             headerRow.innerHTML = `
-                    <th>名前</th>
-                    ${data.category_columns.map(c => `<th>${c}</th>`).join("")}
-                    <th>ファイル</th>
-                `;
+                                <th>名前</th>
+                                ${data.category_columns.map(c => `<th>${c}</th>`).join("")}
+                                <th>ファイル</th>
+                            `;
 
             // 行生成
             tbody.innerHTML = "";

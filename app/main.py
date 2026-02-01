@@ -113,6 +113,26 @@ def remove_category_columns(name: str = Form(...)):
     return {"ok": True}
 
 
+@app.get("/annotation_columns")
+def get_annotation_columns():
+    state = app.state.manager
+    return {"annotation_columns": state.load_annotation_columns()}
+
+
+@app.post("/annotation_columns/add")
+def add_annotation_column(column_id: str = Form(...), label: str = Form(...)):
+    state = app.state.manager
+    ok = state.add_annotation_column(column_id, label)
+    return {"ok": ok}
+
+
+@app.post("/annotation_columns/remove")
+def remove_annotation_column(column_id: str = Form(...)):
+    state = app.state.manager
+    state.remove_annotation_column(column_id)
+    return {"ok": True}
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--identity", required=True, help="Path to identity file")

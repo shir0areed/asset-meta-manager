@@ -10,6 +10,7 @@ class AppState:
     STEP1: identity とインスタンスルートを保持
     STEP2: フォルダスキャン結果（ファイル一覧）を保持
     STEP3: 空 meta の自動生成
+    STEP6-A: アノテーション列（id + label）の編集
     """
 
     def __init__(self, identity_path: str):
@@ -22,6 +23,10 @@ class AppState:
         self._scan_files()
         self._ensure_meta_files()  # ★ STEP3
         self._init_db()
+
+    # ============================================================
+    # カテゴリ列
+    # ============================================================
 
     def load_category_columns(self) -> list[str]:
         conn = sqlite3.connect(self.identity_path)
@@ -44,6 +49,43 @@ class AppState:
         conn = sqlite3.connect(self.identity_path)
         cur = conn.cursor()
         cur.execute("DELETE FROM category_columns WHERE name = ?", (name,))
+        conn.commit()
+        conn.close()
+
+    # ============================================================
+    # アノテーション列（id + label）
+    # ============================================================
+
+    def load_annotation_columns(self) -> list[dict]:
+        conn = sqlite3.connect(self.identity_path)
+        cur = conn.cursor()
+        cur.execute("SELECT column_id, label FROM annotation_columns ORDER BY id")
+        rows = [{"id": r[0], "label": r[1]} for r in cur.fetchall()]
+        conn.close()
+        return rows
+
+    def add_annotation_column(self, column_id: str, label: str) -> bool:
+        conn = sqlite3.connect(self.identity_path)
+        cur = conn.cursor()
+
+        # 既存IDチェック
+        cur.execute("SELECT COUNT(*) FROM annotation_columns WHERE column_id = ?", (column_id,))
+        if cur.fetchone()[0] > 0:
+            conn.close()
+            return False
+
+        cur.execute(
+            "INSERT INTO annotation_columns (column_id, label) VALUES (?, ?)",
+            (column_id, label)
+        )
+        conn.commit()
+        conn.close()
+        return True
+
+    def remove_annotation_column(self, column_id: str):
+        conn = sqlite3.connect(self.identity_path)
+        cur = conn.cursor()
+        cur.execute("DELETE FROM annotation_columns WHERE column_id = ?", (column_id,))
         conn.commit()
         conn.close()
 
@@ -96,11 +138,20 @@ class AppState:
         conn = sqlite3.connect(self.identity_path)
         cur = conn.cursor()
 
-        # スキーマテーブル
+        # カテゴリ列
         cur.execute("""
             CREATE TABLE IF NOT EXISTS category_columns (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT UNIQUE NOT NULL
+            )
+        """)
+
+        # アノテーション列
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS annotation_columns (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                column_id TEXT UNIQUE NOT NULL,
+                label TEXT NOT NULL
             )
         """)
 
