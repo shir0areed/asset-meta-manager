@@ -137,6 +137,19 @@
         loadAnnotationColumns();
     </script>
 
+    <button id="edit-toggle">編集モード: OFF</button>
+
+    <script>
+        let editMode = false;
+
+        document.getElementById("edit-toggle").onclick = () => {
+            editMode = !editMode;
+            document.getElementById("edit-toggle").textContent =
+                editMode ? "編集モード: ON" : "編集モード: OFF";
+            load(); // 再描画
+        };
+    </script>
+
     <table>
         <thead>
             <tr id="header-row"></tr>
@@ -157,25 +170,37 @@
 
             // ヘッダ生成
             headerRow.innerHTML = `
-                                <th>名前</th>
-                                ${data.category_columns.map(c => `<th>${c}</th>`).join("")}
-                                ${data.annotation_columns.map(a => `<th>${a.label}</th>`).join("")}
-                                <th>ファイル</th>
-                            `;
+                                    <th>名前</th>
+                                    ${data.category_columns.map(c => `<th>${c}</th>`).join("")}
+                                    ${data.annotation_columns.map(a => `<th>${a.label}</th>`).join("")}
+                                    <th>ファイル</th>
+                                `;
 
             // 行生成
             tbody.innerHTML = "";
             data.files.forEach(item => {
                 const tr = document.createElement("tr");
 
-                let html = `<td>${item.name}</td>`;
+                let html = "";
 
-                // カテゴリ列
+                // ★ 名前列
+                if (editMode) {
+                    html += `<td><input value="${item.name}"></td>`;
+                } else {
+                    html += `<td>${item.name}</td>`;
+                }
+
+                // ★ カテゴリ列（編集不可）
                 html += item.categories.map(v => `<td>${v}</td>`).join("");
 
-                // アノテーション列
-                html += item.annotations.map(v => `<td>${v}</td>`).join("");
+                // ★ アノテーション列
+                if (editMode) {
+                    html += item.annotations.map(v => `<td><input value="${v}"></td>`).join("");
+                } else {
+                    html += item.annotations.map(v => `<td>${v}</td>`).join("");
+                }
 
+                // ★ ファイル列
                 html += `<td><a href="/file?path=${encodeURIComponent(item.path)}" download>Download</a></td>`;
 
                 tr.innerHTML = html;
