@@ -34,15 +34,15 @@
 
             /* フォーカス中（編集中） */
             table input:focus {
-            border-color: #4a90e2; /* 濃い青 */
-            background: #eef6ff; /* 薄い青背景 */
+                border-color: #4a90e2; /* 濃い青 */
+                background: #eef6ff; /* 薄い青背景 */
                 outline: none;
             }
 
             /* フォーカスが外れた瞬間（確定） */
             table input:not(:focus) {
-            border-color: #ddd; /* 薄いグレー */
-            background: #fafafa; /* ほんのり薄い背景 */
+                border-color: #ddd; /* 薄いグレー */
+                background: #fafafa; /* ほんのり薄い背景 */
             }
     </style>
 </head>
@@ -195,33 +195,171 @@
     <table>
         <thead>
             <tr id="header-row"></tr>
+            <tr id="filter-row"></tr> <!-- ★ フィルタ行を追加 -->
         </thead>
         <tbody id="file-table"></tbody>
     </table>
 
     <script>
+        // -----------------------------
+        // STEP8: フィルタ／ソート状態
+        // -----------------------------
+        let cachedData = null;
+        let filterValues = { };   // {colKey: "text" }
+        let sortColumn = null;   // "name", "cat_0", "ann_1" など
+        let sortAsc = true;
+        let headersInitialized = false;
+
+        // -----------------------------
+        // データ取得
+        // -----------------------------
         async function load() {
             const res = await fetch("/scan-result");
-            const data = await res.json();
+            cachedData = await res.json();
 
-            const headerRow = document.getElementById("header-row");
-            const tbody = document.getElementById("file-table");
             const count = document.getElementById("count");
+            count.textContent = `ファイル数: ${cachedData.files.length}`;
 
-            count.textContent = `ファイル数: ${data.files.length}`;
+            if (!headersInitialized) {
+                initTableHeaders();
+                headersInitialized = true;
+            }
+
+            renderRows();
+        }
+
+        function initTableHeaders() {
+            const data = cachedData;
+            const headerRow = document.getElementById("header-row");
+            const filterRow = document.getElementById("filter-row");
 
             // ヘッダ生成
-            headerRow.innerHTML = `
-                                <th>名前</th>
-                                <th>サムネイル</th>
-                                ${data.category_columns.map(c => `<th>${c}</th>`).join("")}
-                                ${data.annotation_columns.map(a => `<th>${a.label}</th>`).join("")}
-                                <th>ファイル</th>
-                            `;
+            let headerHtml = `
+                <th class="sortable" data-col="name">名前</th>
+                <th>サムネイル</th>
+            `;
+            let filterHtml = `
+                <td><input class="filter-input" data-col="name"></td>
+                <td></td>
+            `;
+
+            data.category_columns.forEach((c, i) => {
+                headerHtml += `<th class="sortable" data-col="cat_${i}">${c}</th>`;
+                filterHtml += `<td><input class="filter-input" data-col="cat_${i}"></td>`;
+            });
+
+            data.annotation_columns.forEach((a, i) => {
+                headerHtml += `<th class="sortable" data-col="ann_${i}">${a.label}</th>`;
+                filterHtml += `<td><input class="filter-input" data-col="ann_${i}"></td>`;
+            });
+
+            headerHtml += `<th>ファイル</th>`;
+            filterHtml += `<td></td>`;
+
+            headerRow.innerHTML = headerHtml;
+            filterRow.innerHTML = filterHtml;
+
+            // フィルタ入力イベント
+            document.querySelectorAll(".filter-input").forEach(input => {
+                const col = input.dataset.col;
+                input.addEventListener("input", () => {
+                    filterValues[col] = input.value;
+                    renderRows();
+                });
+            });
+
+
+            // -----------------------------
+            // ソートイベント
+            // -----------------------------
+            document.querySelectorAll(".sortable").forEach(th => {
+                th.addEventListener("click", () => {
+                    const col = th.dataset.col;
+                    if (sortColumn === col) {
+                        sortAsc = !sortAsc;
+                    } else {
+                        sortColumn = col;
+                        sortAsc = true;
+                    }
+                    renderRows();
+                });
+            });
+        }
+
+        function renderRows() {
+            const data = cachedData;
+            if (!data) return;
+
+            const tbody = document.getElementById("file-table");
+
+            // フィルタ欄の値を反映（値だけ、DOMは触らない）
+            document.querySelectorAll(".filter-input").forEach(input => {
+                const col = input.dataset.col;
+                if (filterValues[col] !== undefined) {
+                    input.value = filterValues[col];
+                }
+            });
+
+            // -----------------------------
+            // フィルタ処理
+            // -----------------------------
+            let rows = data.files.filter(item => {
+                // 名前
+                const fvName = filterValues["name"];
+                if (fvName && !item.name.toLowerCase().includes(fvName.toLowerCase())) {
+                    return false;
+                }
+
+                // カテゴリ
+                for (let i = 0; i < data.category_columns.length; i++) {
+                    const key = `cat_${i}`;
+                    const fv = filterValues[key];
+                    if (fv && !item.categories[i].toLowerCase().includes(fv.toLowerCase())) {
+                        return false;
+                    }
+                }
+
+                // アノテーション
+                for (let i = 0; i < data.annotation_columns.length; i++) {
+                    const key = `ann_${i}`;
+                    const fv = filterValues[key];
+                    if (fv && !item.annotations[i].toLowerCase().includes(fv.toLowerCase())) {
+                        return false;
+                    }
+                }
+
+                return true;
+            });
+
+            // -----------------------------
+            // ソート処理
+            // -----------------------------
+            if (sortColumn !== null) {
+                rows.sort((a, b) => {
+                    let va = "";
+                    let vb = "";
+
+                    if (sortColumn === "name") {
+                        va = a.name;
+                        vb = b.name;
+                    } else if (sortColumn.startsWith("cat_")) {
+                        const i = Number(sortColumn.split("_")[1]);
+                        va = a.categories[i] || "";
+                        vb = b.categories[i] || "";
+                    } else if (sortColumn.startsWith("ann_")) {
+                        const i = Number(sortColumn.split("_")[1]);
+                        va = a.annotations[i] || "";
+                        vb = b.annotations[i] || "";
+                    }
+
+                    const cmp = va.localeCompare(vb);
+                    return sortAsc ? cmp : -cmp;
+                });
+            }
 
             // 行生成
             tbody.innerHTML = "";
-            data.files.forEach(item => {
+            rows.forEach(item => {
                 const tr = document.createElement("tr");
 
                 let html = "";
@@ -229,12 +367,12 @@
                 // ★ 名前列
                 if (editMode) {
                     html += `<td>
-                            <input class="edit-cell"
-                                   data-original="${item.name}"
-                                   data-path="${item.path}"
-                                   data-column="__name__"
-                                   value="${item.name}">
-                        </td>`;
+                        <input class="edit-cell"
+                               data-original="${item.name}"
+                               data-path="${item.path}"
+                               data-column="__name__"
+                               value="${item.name}">
+                    </td>`;
                 } else {
                     html += `<td>${item.name}</td>`;
                 }
@@ -263,13 +401,13 @@
                 // ★ アノテーション列
                 if (editMode) {
                     html += item.annotations.map((v, i) => `
-                            <td>
-                                <input class="edit-cell"
-                                       data-original="${v}"
-                                       data-path="${item.path}"
-                                       data-column="${data.annotation_columns[i].id}"
-                                       value="${v}">
-                            </td>`).join("");
+                        <td>
+                            <input class="edit-cell"
+                                   data-original="${v}"
+                                   data-path="${item.path}"
+                                   data-column="${data.annotation_columns[i].id}"
+                                   value="${v}">
+                        </td>`).join("");
                 } else {
                     html += item.annotations.map(v => `<td>${v}</td>`).join("");
                 }
@@ -355,7 +493,7 @@
                     input.click();
                 });
 
-            // 右クリック → クリップボードから貼り付け
+                // 右クリック → クリップボードから貼り付け
                 img.addEventListener("contextmenu", async (e) => {
                     e.preventDefault();
                     try {
