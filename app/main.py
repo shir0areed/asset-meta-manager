@@ -6,14 +6,11 @@ from app.core.state import AppState
 
 
 app = FastAPI()
-state = AppState()
 
 
 @app.on_event("startup")
 async def startup_event():
-    # STEP2: フォルダスキャン
-    state.scan_files()
-
+    state = app.state.manager
     print("Scanned files:")
     for f in state.files:
         print(" -", f)
@@ -24,6 +21,7 @@ def instance_info():
     STEP1 の動作確認用エンドポイント。
     UI 実装前でもブラウザで確認できる。
     """
+    state = app.state.manager
     return {
         "identity": str(state.identity_path),
         "instance_root": str(state.instance_root),
@@ -37,6 +35,7 @@ def scan_result():
     STEP2 の動作確認用エンドポイント。
     スキャンされたファイル一覧を返す。
     """
+    state = app.state.manager
     return {
         "files": [str(p) for p in state.files]
     }
@@ -48,7 +47,7 @@ def main():
     args = parser.parse_args()
 
     # identity をロード
-    state.load_identity(args.identity)
+    app.state.manager = AppState(identity_path=args.identity)
 
     # uvicorn 起動
     uvicorn.run(app, host="127.0.0.1", port=8000, reload=False)

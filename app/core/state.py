@@ -8,13 +8,16 @@ class AppState:
     STEP2: フォルダスキャン結果（ファイル一覧）を保持
     """
 
-    def __init__(self) -> None:
+    def __init__(self, identity_path: str):
         self.identity_path: Optional[Path] = None
         self.instance_root: Optional[Path] = None
         self.sibling_folders: List[Path] = []
-
+        
         # STEP2: スキャン結果
         self.files: List[Path] = []
+
+        self.load_identity(identity_path)
+        self.scan_files()
 
     def load_identity(self, identity: str) -> None:
         identity_path = Path(identity).resolve()
