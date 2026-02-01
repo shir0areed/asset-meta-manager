@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import List
 import json
 
+META_SUFFIX = ".ameta"
 
 class AppState:
     """
@@ -40,16 +41,15 @@ class AppState:
 
     def _scan_files(self) -> None:
         """
-        STEP2: インスタンスルートと同階層のフォルダ（sibling_folders）だけを
-        再帰的にスキャンし、ファイル一覧を self.files に格納する。
-        identity と同階層の直下ファイルはスキャンしない。
+        STEP2: sibling_folders の中だけを再帰スキャン。
+        .ameta ファイルはスキャン対象外。
         """
         result: List[Path] = []
 
         # 同階層フォルダごとに再帰スキャン
         for folder in self.sibling_folders:
             for path in folder.rglob("*"):
-                if path.is_file():
+                if path.is_file() and not path.suffix == META_SUFFIX:
                     result.append(path)
 
         self.files = result
@@ -60,7 +60,7 @@ class AppState:
         既に存在する場合はスキップ。
         """
         for file_path in self.files:
-            meta_path = file_path.with_suffix(file_path.suffix + ".ameta")
+            meta_path = file_path.with_suffix(file_path.suffix + META_SUFFIX)
 
             if not meta_path.exists():
                 # 空 JSON を書き込む
