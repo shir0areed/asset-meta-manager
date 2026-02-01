@@ -208,7 +208,6 @@
         let filterValues = { };   // {colKey: "text" }
         let sortColumn = null;   // "name", "cat_0", "ann_1" など
         let sortAsc = true;
-        let headersInitialized = false;
 
         // -----------------------------
         // データ取得
@@ -220,10 +219,7 @@
             const count = document.getElementById("count");
             count.textContent = `ファイル数: ${cachedData.files.length}`;
 
-            if (!headersInitialized) {
-                initTableHeaders();
-                headersInitialized = true;
-            }
+            initTableHeaders();
 
             renderRows();
         }
