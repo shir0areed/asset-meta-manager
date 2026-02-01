@@ -243,12 +243,15 @@
                 if (editMode) {
                     const thumb = item.thumbnail || "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIW2P4//8/AwAI/AL+Z4VHKwAAAABJRU5ErkJggg=="; // 透明1px
                     html += `
-                            <td>
-                                <img class="thumb-img"
-                                     data-path="${item.path}"
-                                     src="${thumb}"
-                                     style="width:64px;height:64px;object-fit:cover;cursor:pointer;">
-                            </td>`;
+                        <td style="white-space:nowrap;">
+                            <img class="thumb-img"
+                                 data-path="${item.path}"
+                                 src="${thumb}"
+                                 style="width:64px;height:64px;object-fit:cover;cursor:pointer;vertical-align:middle;">
+                            <button class="thumb-delete-btn"
+                                    data-path="${item.path}"
+                                    style="margin-left:4px;">×</button>
+                        </td>`;
                 } else {
                     const thumb = item.thumbnail || "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIW2P4//8/AwAI/AL+Z4VHKwAAAABJRU5ErkJggg==";
                     html += `<td><img src="${thumb}" style="width:64px;height:64px;object-fit:cover;"></td>`;
@@ -319,6 +322,18 @@
                 });
             });
 
+            // ★ サムネイル削除ボタン
+            document.querySelectorAll(".thumb-delete-btn").forEach(btn => {
+                btn.addEventListener("click", async () => {
+                    const path = btn.dataset.path;
+                    await fetch("/meta/delete-thumbnail", {
+                        method: "POST",
+                        body: new URLSearchParams({ path })
+                    });
+                    load();
+                });
+            });
+
             // ★ サムネイル編集
             document.querySelectorAll(".thumb-img").forEach(img => {
 
@@ -340,7 +355,7 @@
                     input.click();
                 });
 
-                // 右クリック → クリップボードから貼り付け
+            // 右クリック → クリップボードから貼り付け
                 img.addEventListener("contextmenu", async (e) => {
                     e.preventDefault();
                     try {

@@ -169,6 +169,12 @@ def update_thumbnail(path: str = Form(...), value: str = Form(...)):
     return {"ok": True}
 
 
+@app.post("/meta/delete-thumbnail")
+def delete_thumbnail(path: str = Form(...)):
+    app.state.manager.update_thumbnail(path, None)
+    return {"ok": True}
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--identity", required=True, help="Path to identity file")

@@ -140,10 +140,16 @@ class AppState:
     # ============================================================
     # サムネイルの更新
     # ============================================================
-    def update_thumbnail(self, rel_path: str, base64_data: str):
+    def update_thumbnail(self, rel_path: str, base64_data: str | None):
         file_path = self.instance_root / rel_path
         meta = self.load_meta(file_path)
-        meta["thumbnail"] = base64_data
+
+        if base64_data is None:
+            # 削除
+            meta.pop("thumbnail", None)
+        else:
+            # 更新
+            meta["thumbnail"] = base64_data
         self.save_meta(file_path, meta)
 
     # ------------------------------
