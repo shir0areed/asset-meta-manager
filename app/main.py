@@ -11,10 +11,12 @@ state = AppState()
 
 @app.on_event("startup")
 async def startup_event():
-    # identity は起動時に state にセットされている前提
-    print("Instance root:", state.instance_root)
-    print("Sibling folders:", [str(p) for p in state.sibling_folders])
+    # STEP2: フォルダスキャン
+    state.scan_files()
 
+    print("Scanned files:")
+    for f in state.files:
+        print(" -", f)
 
 @app.get("/instance-info")
 def instance_info():
@@ -26,6 +28,17 @@ def instance_info():
         "identity": str(state.identity_path),
         "instance_root": str(state.instance_root),
         "sibling_folders": [str(p) for p in state.sibling_folders],
+    }
+
+
+@app.get("/scan-result")
+def scan_result():
+    """
+    STEP2 の動作確認用エンドポイント。
+    スキャンされたファイル一覧を返す。
+    """
+    return {
+        "files": [str(p) for p in state.files]
     }
 
 
