@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Asset Meta Manager</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+        }
+
+        th {
+            background: #eee;
+        }
+    </style>
+</head>
+<body>
+    <h1>Asset Meta Manager</h1>
+    <p id="count"></p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>名前</th>
+                <th>ファイル</th>
+            </tr>
+        </thead>
+        <tbody id="file-table"></tbody>
+    </table>
+
+    <script>
+        async function load() {
+            const res = await fetch("/scan-result");
+            const data = await res.json();
+
+            const tbody = document.getElementById("file-table");
+            const count = document.getElementById("count");
+
+            count.textContent = `ファイル数: ${data.files.length}`;
+
+            data.files.forEach(item => {
+                const name = item.name;
+                const path = item.path;
+
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${name}</td>
+                    <td><a href="/file?path=${encodeURIComponent(path)}" download>Download</a></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        load();
+    </script>
+</body>
+</html>
