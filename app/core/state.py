@@ -1,23 +1,28 @@
 from pathlib import Path
 from typing import List
+import json
 
 
 class AppState:
     """
     STEP1: identity とインスタンスルートを保持
     STEP2: フォルダスキャン結果（ファイル一覧）を保持
+    STEP3: 空 meta の自動生成
     """
 
     def __init__(self, identity_path: str):
         self.identity_path: Path
         self.instance_root: Path
         self.sibling_folders: List[Path] = []
-       
-        # STEP2: スキャン結果
         self.files: List[Path] = []
 
         self._load_identity(identity_path)
         self._scan_files()
+        self._ensure_meta_files()  # ★ STEP3
+
+    # ------------------------------
+    # private methods
+    # ------------------------------
 
     def _load_identity(self, identity: str) -> None:
         identity_path = Path(identity).resolve()
@@ -49,3 +54,14 @@ class AppState:
 
         self.files = result
 
+    def _ensure_meta_files(self) -> None:
+        """
+        STEP3: 各ファイルに対して <filename>.ameta を生成する。
+        既に存在する場合はスキップ。
+        """
+        for file_path in self.files:
+            meta_path = file_path.with_suffix(file_path.suffix + ".ameta")
+
+            if not meta_path.exists():
+                # 空 JSON を書き込む
+                meta_path.write_text("{}", encoding="utf-8")
