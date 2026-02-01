@@ -57,6 +57,8 @@ def scan_result():
         # ★ 名前（meta に name があれば優先）
         name = meta.get("name", p.stem)
 
+        thumbnail = meta.get("thumbnail", None)
+
         # 相対パスを分解してフォルダ部分を抽出
         parts = rel_posix.split("/")          # ["foo","bar","buzz","data.zip"]
         folder_parts = parts[:-1]             # ["foo","bar","buzz"]
@@ -77,6 +79,7 @@ def scan_result():
         result.append({
             "path": rel_posix,
             "name": name,
+            "thumbnail": thumbnail,
             "categories": categories,
             "annotations": annotations,
         })
@@ -157,6 +160,12 @@ def update_name(path: str = Form(...), value: str = Form(...)):
 @app.post("/meta/update-annotation")
 def update_annotation(path: str = Form(...), column_id: str = Form(...), value: str = Form(...)):
     app.state.manager.update_annotation(path, column_id, value)
+    return {"ok": True}
+
+
+@app.post("/meta/update-thumbnail")
+def update_thumbnail(path: str = Form(...), value: str = Form(...)):
+    app.state.manager.update_thumbnail(path, value)
     return {"ok": True}
 
 

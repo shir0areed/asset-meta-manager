@@ -137,6 +137,15 @@ class AppState:
         meta["annotations"][column_id] = value
         self.save_meta(file_path, meta)
 
+    # ============================================================
+    # サムネイルの更新
+    # ============================================================
+    def update_thumbnail(self, rel_path: str, base64_data: str):
+        file_path = self.instance_root / rel_path
+        meta = self.load_meta(file_path)
+        meta["thumbnail"] = base64_data
+        self.save_meta(file_path, meta)
+
     # ------------------------------
     # private methods
     # ------------------------------
