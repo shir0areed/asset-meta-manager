@@ -108,6 +108,7 @@
                         body: new URLSearchParams({ column_id: col.id })
                     });
                     loadAnnotationColumns();
+                    load(); // ファイル一覧も更新
                 };
 
                 li.appendChild(btn);
@@ -130,6 +131,7 @@
             document.getElementById("annotation-id").value = "";
 
             loadAnnotationColumns();
+            load(); // ファイル一覧も更新
         };
 
         loadAnnotationColumns();
@@ -157,6 +159,7 @@
             headerRow.innerHTML = `
                                 <th>名前</th>
                                 ${data.category_columns.map(c => `<th>${c}</th>`).join("")}
+                                ${data.annotation_columns.map(a => `<th>${a.label}</th>`).join("")}
                                 <th>ファイル</th>
                             `;
 
@@ -167,7 +170,11 @@
 
                 let html = `<td>${item.name}</td>`;
 
+                // カテゴリ列
                 html += item.categories.map(v => `<td>${v}</td>`).join("");
+
+                // アノテーション列
+                html += item.annotations.map(v => `<td>${v}</td>`).join("");
 
                 html += `<td><a href="/file?path=${encodeURIComponent(item.path)}" download>Download</a></td>`;
 

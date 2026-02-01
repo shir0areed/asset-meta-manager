@@ -40,13 +40,14 @@ def scan_result():
     state = app.state.manager
     root = state.instance_root  # identity の親フォルダ
     category_columns = state.load_category_columns()
+    annotation_columns = state.load_annotation_columns()
 
     result = []
 
     for p in state.files:
         # identity からの相対パス（Path）
         rel = p.relative_to(root)
-
+        
         # UI 用に POSIX 文字列へ
         rel_posix = rel.as_posix()
 
@@ -61,14 +62,21 @@ def scan_result():
         for i in range(len(category_columns)):
             categories.append(folder_parts[i] if i < len(folder_parts) else "")
 
+        # ★ STEP6-B：アノテーション列はまだ空欄
+        annotations = []
+        for i in range(len(annotation_columns)):
+            annotations.append("")
+
         result.append({
             "path": rel_posix,
             "name": name,
             "categories": categories,
+            "annotations": annotations,
         })
 
     return {
         "category_columns": category_columns,
+        "annotation_columns": annotation_columns,
         "files": result,
     }
 
