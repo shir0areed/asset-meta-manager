@@ -22,6 +22,28 @@
         th {
             background: #eee;
         }
+        /* 編集モードの input 共通 */
+        table input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 4px;
+            border: 1px solid #ccc;
+            background: #fff;
+            transition: all 0.15s ease;
+        }
+
+        /* フォーカス中（編集中） */
+        table input:focus {
+            border-color: #4a90e2; /* 濃い青 */
+            background: #eef6ff; /* 薄い青背景 */
+            outline: none;
+        }
+
+        /* フォーカスが外れた瞬間（確定） */
+        table input:not(:focus) {
+            border-color: #ddd; /* 薄いグレー */
+            background: #fafafa; /* ほんのり薄い背景 */
+        }
     </style>
 </head>
 <body>
