@@ -1,6 +1,6 @@
 import argparse
 from fastapi import FastAPI, Query, Form
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import RedirectResponse, HTMLResponse, FileResponse
 from pathlib import Path
 import uvicorn
 
@@ -16,6 +16,10 @@ async def startup_event():
     print("Scanned files:")
     for f in state.files:
         print(" -", f)
+
+@app.get("/")
+def root():
+    return RedirectResponse(url="/ui")
 
 @app.get("/instance-info")
 def instance_info():
