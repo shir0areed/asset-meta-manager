@@ -30,7 +30,7 @@
 
     <h2>カテゴリ列（フォルダ名取得列）編集</h2>
 
-    <form id="add-form">
+    <form id="category-add-form">
         <input type="text" id="category-columns-name" placeholder="列名">
         <button type="submit">追加</button>
     </form>
@@ -63,7 +63,7 @@
             });
         }
 
-        document.getElementById("add-form").onsubmit = async (e) => {
+        document.getElementById("category-add-form").onsubmit = async (e) => {
             e.preventDefault();
             const name = document.getElementById("category-columns-name").value;
             await fetch("/category_columns/add", {
