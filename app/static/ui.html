@@ -276,8 +276,7 @@
                 // Enter / ESC
                 input.addEventListener("keydown", e => {
                     if (e.key === "Enter") {
-                        // ★ 保存 API 呼び出し予定地
-                        // saveValue(input.dataset.path, input.dataset.column, input.value);
+                        saveValue(input.dataset.path, input.dataset.column, input.value);
 
                         input.dataset.original = input.value;
                         input.blur();
@@ -295,14 +294,30 @@
 
                     const ok = confirm("変更を保存しますか？");
                     if (ok) {
-                        // ★ 保存 API 呼び出し予定地
-                        // saveValue(input.dataset.path, input.dataset.column, newValue);
+                        saveValue(input.dataset.path, input.dataset.column, newValue);
+
                         input.dataset.original = input.value;
                     } else {
                         input.value = input.dataset.original;
                     }
                 });
             });
+        }
+
+        async function saveValue(path, column, value) {
+            if (column === "__name__") {
+                await fetch("/meta/update-name", {
+                    method: "POST",
+                    body: new URLSearchParams({ path, value })
+                });
+            } else {
+                await fetch("/meta/update-annotation", {
+                    method: "POST",
+                    body: new URLSearchParams({ path, column_id: column, value })
+                });
+            }
+
+            load();
         }
 
         load();

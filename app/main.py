@@ -51,21 +51,28 @@ def scan_result():
         # UI 用に POSIX 文字列へ
         rel_posix = rel.as_posix()
 
-        name = p.stem
+        # ★ meta.json をロード
+        meta = state.load_meta(p)
+
+        # ★ 名前（meta に name があれば優先）
+        name = meta.get("name", p.stem)
 
         # 相対パスを分解してフォルダ部分を抽出
         parts = rel_posix.split("/")          # ["foo","bar","buzz","data.zip"]
         folder_parts = parts[:-1]             # ["foo","bar","buzz"]
 
         # ★ STEP5-B：カテゴリ列にフォルダ名を割り当てる
-        categories = []
-        for i in range(len(category_columns)):
-            categories.append(folder_parts[i] if i < len(folder_parts) else "")
+        categories = [
+            folder_parts[i] if i < len(folder_parts) else ""
+            for i in range(len(category_columns))
+        ]
 
-        # ★ STEP6-B：アノテーション列はまだ空欄
-        annotations = []
-        for i in range(len(annotation_columns)):
-            annotations.append("")
+        # ★ アノテーション列（配列で返す）
+        ann_dict = meta.get("annotations", {})
+        annotations = [
+            ann_dict.get(col["id"], "")
+            for col in annotation_columns
+        ]
 
         result.append({
             "path": rel_posix,
@@ -138,6 +145,18 @@ def add_annotation_column(column_id: str = Form(...), label: str = Form(...)):
 def remove_annotation_column(column_id: str = Form(...)):
     state = app.state.manager
     state.remove_annotation_column(column_id)
+    return {"ok": True}
+
+
+@app.post("/meta/update-name")
+def update_name(path: str = Form(...), value: str = Form(...)):
+    app.state.manager.update_name(path, value)
+    return {"ok": True}
+
+
+@app.post("/meta/update-annotation")
+def update_annotation(path: str = Form(...), column_id: str = Form(...), value: str = Form(...)):
+    app.state.manager.update_annotation(path, column_id, value)
     return {"ok": True}
 
 

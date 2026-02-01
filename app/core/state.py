@@ -89,6 +89,54 @@ class AppState:
         conn.commit()
         conn.close()
 
+    # ============================================================
+    # STEP6.5-B: meta.json のロード
+    # ============================================================
+    def load_meta(self, file_path: Path) -> dict:
+        meta_path = file_path.with_suffix(file_path.suffix + META_SUFFIX)
+        if not meta_path.exists():
+            return {}
+        try:
+            return json.loads(meta_path.read_text(encoding="utf-8"))
+        except:
+            return {}
+
+    # ============================================================
+    # STEP6.5-B: meta.json の保存
+    # ============================================================
+    def save_meta(self, file_path: Path, meta: dict):
+        meta_path = file_path.with_suffix(file_path.suffix + META_SUFFIX)
+        if not meta_path.exists():
+            return
+        try:
+            meta_path.write_text(
+                json.dumps(meta, ensure_ascii=False, indent=2),
+                encoding="utf-8"
+            )
+        except Exception:
+            return
+
+
+    # ============================================================
+    # 名前の更新
+    # ============================================================
+    def update_name(self, rel_path: str, new_name: str):
+        file_path = self.instance_root / rel_path
+        meta = self.load_meta(file_path)
+        meta["name"] = new_name
+        self.save_meta(file_path, meta)
+
+    # ============================================================
+    # アノテーションの更新
+    # ============================================================
+    def update_annotation(self, rel_path: str, column_id: str, value: str):
+        file_path = self.instance_root / rel_path
+        meta = self.load_meta(file_path)
+        if "annotations" not in meta:
+            meta["annotations"] = {}
+        meta["annotations"][column_id] = value
+        self.save_meta(file_path, meta)
+
     # ------------------------------
     # private methods
     # ------------------------------
