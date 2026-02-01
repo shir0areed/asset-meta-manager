@@ -17,7 +17,7 @@ class AppState:
     def load_identity(self, identity: str) -> None:
         identity_path = Path(identity).resolve()
 
-        if not identity_path.exists():
+        if not identity_path.exists() or not identity_path.is_file():
             raise FileNotFoundError(f"identity file not found: {identity_path}")
 
         self.identity_path = identity_path
