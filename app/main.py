@@ -1,6 +1,7 @@
 import argparse
 from fastapi import FastAPI, Query, Form
 from fastapi.responses import RedirectResponse, HTMLResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 import uvicorn
 
@@ -9,6 +10,7 @@ from app.core.state import AppState
 
 app = FastAPI()
 
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 @app.on_event("startup")
 async def startup_event():
