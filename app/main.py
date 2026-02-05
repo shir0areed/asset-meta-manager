@@ -158,8 +158,8 @@ def update_name(path: str = Form(...), value: str = Form(...)):
 
 
 @app.post("/meta/update-annotation")
-def update_annotation(path: str = Form(...), column_id: str = Form(...), value: str = Form(...)):
-    app.state.manager.update_annotation(path, column_id, value)
+def update_annotation(path: str = Form(...), column_id: str = Form(...), value: str | None = Form("")):
+    app.state.manager.update_annotation(path, column_id, value or "")
     return {"ok": True}
 
 
