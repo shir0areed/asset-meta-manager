@@ -138,9 +138,9 @@ def get_annotation_columns():
 
 
 @app.post("/annotation_columns/add")
-def add_annotation_column(column_id: str = Form(...), label: str = Form(...)):
+def add_annotation_column(column_id: str = Form(...), label: str = Form(...), type: str = Form(...)):
     state = app.state.manager
-    ok = state.add_annotation_column(column_id, label)
+    ok = state.add_annotation_column(column_id, label, type)
     return {"ok": ok}
 
 

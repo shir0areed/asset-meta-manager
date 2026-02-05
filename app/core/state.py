@@ -59,12 +59,12 @@ class AppState:
     def load_annotation_columns(self) -> list[dict]:
         conn = sqlite3.connect(self.identity_path)
         cur = conn.cursor()
-        cur.execute("SELECT column_id, label FROM annotation_columns ORDER BY id")
-        rows = [{"id": r[0], "label": r[1]} for r in cur.fetchall()]
+        cur.execute("SELECT column_id, label, type FROM annotation_columns ORDER BY id")
+        rows = [{"id": r[0], "label": r[1], "type": r[2]} for r in cur.fetchall()]
         conn.close()
         return rows
 
-    def add_annotation_column(self, column_id: str, label: str) -> bool:
+    def add_annotation_column(self, column_id: str, label: str, type: str) -> bool:
         conn = sqlite3.connect(self.identity_path)
         cur = conn.cursor()
 
@@ -75,8 +75,8 @@ class AppState:
             return False
 
         cur.execute(
-            "INSERT INTO annotation_columns (column_id, label) VALUES (?, ?)",
-            (column_id, label)
+            "INSERT INTO annotation_columns (column_id, label, type) VALUES (?, ?, ?)",
+            (column_id, label, type)
         )
         conn.commit()
         conn.close()
@@ -214,7 +214,8 @@ class AppState:
             CREATE TABLE IF NOT EXISTS annotation_columns (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 column_id TEXT UNIQUE NOT NULL,
-                label TEXT NOT NULL
+                label TEXT NOT NULL,
+                type TEXT NOT NULL
             )
         """)
 

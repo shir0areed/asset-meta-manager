@@ -7,7 +7,7 @@ async function loadAnnotationColumns() {
 
     data.annotation_columns.forEach(col => {
         const li = document.createElement("li");
-        li.textContent = `${col.label} (${col.id}) `;
+        li.textContent = `${col.label} (${col.id}: ${col.type}) `;
 
         const btn = document.createElement("button");
         btn.textContent = "削除";
@@ -30,10 +30,11 @@ document.getElementById("annotation-add-form").onsubmit = async (e) => {
 
     const label = document.getElementById("annotation-label").value;
     const column_id = document.getElementById("annotation-id").value;
+    const type = document.getElementById("annotation-type").value;
 
     await fetch("/annotation_columns/add", {
         method: "POST",
-        body: new URLSearchParams({ label, column_id })
+        body: new URLSearchParams({ label, column_id, type })
     });
 
     document.getElementById("annotation-label").value = "";
