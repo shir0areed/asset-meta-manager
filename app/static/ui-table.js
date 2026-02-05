@@ -206,7 +206,20 @@ function renderRows() {
                                                        value="${v}">
                                             </td>`).join("");
         } else {
-            html += item.annotations.map(v => `<td>${v}</td>`).join("");
+            html += data.annotation_columns.map((col, i) => {
+                const v = item.annotations[i] || "";
+
+                if (col.type === "url" && v) {
+                    return `
+                        <td>
+                            <a href="${v}" target="_blank" class="url-icon" title="${v}">
+                                🌐
+                            </a>
+                        </td>`;
+                }
+
+                return `<td>${v}</td>`;
+            }).join("");
         }
 
         // ★ ファイル列
