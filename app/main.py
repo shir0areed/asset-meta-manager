@@ -1,6 +1,6 @@
 import argparse
 from fastapi import FastAPI, Query, Form
-from fastapi.responses import RedirectResponse, HTMLResponse, FileResponse
+from fastapi.responses import RedirectResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 import uvicorn
@@ -21,7 +21,7 @@ async def startup_event():
 
 @app.get("/")
 def root():
-    return RedirectResponse(url="/ui")
+    return RedirectResponse(url="/static/ui.html")
 
 @app.get("/instance-info")
 def instance_info():
@@ -95,12 +95,6 @@ def scan_result():
         "annotation_columns": annotation_columns,
         "files": result,
     }
-
-
-@app.get("/ui")
-def ui():
-    html_path = Path(__file__).parent / "static" / "ui.html"
-    return HTMLResponse(html_path.read_text(encoding="utf-8"))
 
 
 @app.get("/file")
