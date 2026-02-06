@@ -174,12 +174,25 @@ class AppState:
         """
         STEP2: sibling_folders の中だけを再帰スキャン。
         .ameta ファイルはスキャン対象外。
+        .aignore が置かれたフォルダは無視。
         """
         result: List[Path] = []
+
+        # ★ sibling_folders 配下を再帰的に見て .aignore を探す
+        ignore_dirs = set()
+        for folder in self.sibling_folders:
+            for path in folder.rglob(".aignore"):
+                if path.is_file():
+                    ignore_dirs.add(path.parent)
 
         # 同階層フォルダごとに再帰スキャン
         for folder in self.sibling_folders:
             for path in folder.rglob("*"):
+
+                # ★ ignore フォルダ配下はスキップ
+                if any(path.is_relative_to(ig) for ig in ignore_dirs):
+                    continue
+
                 if path.is_file() and not path.suffix == META_SUFFIX:
                     result.append(path)
 
