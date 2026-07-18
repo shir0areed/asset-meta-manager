@@ -58,7 +58,18 @@ def list_identities():
     identity が 0 個でも空リストを返す。
     """
     managers = app.state.managers
+    current = app.state.manager
+
+    # current の index を求める
+    current_index = None
+    if current is not None:
+        for i, m in enumerate(managers):
+            if m is current:
+                current_index = i
+                break
+
     return {
+        "current": current_index,
         "identities": [
             {
                 "index": i,

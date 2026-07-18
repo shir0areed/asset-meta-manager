@@ -30,6 +30,7 @@ async function loadIdentityList() {
     const data = await res.json();
 
     const list = data.identities || [];
+    const current = data.current;   // ★ 現在選択中の index
 
     // セレクタをクリア
     identitySelector.innerHTML = "";
@@ -51,6 +52,12 @@ async function loadIdentityList() {
         const opt = document.createElement("option");
         opt.value = item.index;
         opt.textContent = item.identity_path;
+
+        // ★ 現在選択中の identity をデフォルト選択
+        if (item.index === current) {
+            opt.selected = true;
+        }
+
         identitySelector.appendChild(opt);
     });
 }
