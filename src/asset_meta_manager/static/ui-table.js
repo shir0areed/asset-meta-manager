@@ -6,6 +6,9 @@ let filterValues = {};   // {colKey: "text" }
 let sortColumn = null;   // "name", "cat_0", "ann_1" など
 let sortAsc = true;
 
+let currentPage = 1;
+const pageSize = 10;
+
 // -----------------------------
 // データ取得
 // -----------------------------
@@ -170,9 +173,23 @@ function renderRows() {
         });
     }
 
+    // -----------------------------
+    // ページネーション処理
+    // -----------------------------
+    const totalPages = Math.ceil(rows.length / pageSize);
+
+    // 現在ページが範囲外なら補正
+    if (currentPage > totalPages) currentPage = totalPages;
+    if (currentPage < 1) currentPage = 1;
+
+    // ページに応じて rows を切り出す
+    const start = (currentPage - 1) * pageSize;
+    const end = start + pageSize;
+    const pageRows = rows.slice(start, end);
+
     // 行生成
     tbody.innerHTML = "";
-    rows.forEach(item => {
+    pageRows.forEach(item => {
         const tr = document.createElement("tr");
 
         let html = "";
@@ -249,6 +266,26 @@ function renderRows() {
 
         tr.innerHTML = html;
         tbody.appendChild(tr);
+    });
+
+    // -----------------------------
+    // ページネーション UI
+    // -----------------------------
+    const pag = document.getElementById("pagination");
+    pag.innerHTML = `
+        <button ${currentPage <= 1 ? "disabled" : ""} id="page-prev">前へ</button>
+        <span> ${currentPage} / ${totalPages} </span>
+        <button ${currentPage >= totalPages ? "disabled" : ""} id="page-next">次へ</button>
+    `;
+
+    // イベント
+    document.getElementById("page-prev")?.addEventListener("click", () => {
+        currentPage--;
+        renderRows();
+    });
+    document.getElementById("page-next")?.addEventListener("click", () => {
+        currentPage++;
+        renderRows();
     });
 
     if (editMode) {
