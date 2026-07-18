@@ -9,7 +9,10 @@ let sortAsc = true;
 // -----------------------------
 // データ取得
 // -----------------------------
+const loadingOverlay = document.getElementById("loading-overlay");
+
 async function load() {
+    loadingOverlay.style.display = "flex";
     const res = await fetch("/scan-result");
     cachedData = await res.json();
 
@@ -19,6 +22,7 @@ async function load() {
     initTableHeaders();
 
     renderRows();
+    loadingOverlay.style.display = "none";
 }
 
 function initTableHeaders() {
