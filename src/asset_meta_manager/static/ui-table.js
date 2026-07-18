@@ -32,21 +32,21 @@ function initTableHeaders() {
 
     // ヘッダ生成
     let headerHtml = `
-                                    <th class="sortable" data-col="name">名前</th>
-                                    <th>サムネイル</th>
-                                `;
+        <th class="sortable" data-col="name">名前 <span class="sort-arrow"></span></th>
+        <th>サムネイル</th>
+    `;
     let filterHtml = `
-                                    <td><input class="filter-input" data-col="name"></td>
-                                    <td></td>
-                                `;
+        <td><input class="filter-input" data-col="name"></td>
+        <td></td>
+    `;
 
     data.category_columns.forEach((c, i) => {
-        headerHtml += `<th class="sortable" data-col="cat_${i}">${c}</th>`;
+        headerHtml += `<th class="sortable" data-col="cat_${i}">${c} <span class="sort-arrow"></span></th>`;
         filterHtml += `<td><input class="filter-input" data-col="cat_${i}"></td>`;
     });
 
     data.annotation_columns.forEach((a, i) => {
-        headerHtml += `<th class="sortable" data-col="ann_${i}">${a.label}</th>`;
+        headerHtml += `<th class="sortable" data-col="ann_${i}">${a.label} <span class="sort-arrow"></span></th>`;
 
         if (a.type === "url") {
             // ★ URL 型は検索ボックスなし
@@ -84,6 +84,16 @@ function initTableHeaders() {
                 sortColumn = col;
                 sortAsc = true;
             }
+
+            // ★ 全ての矢印枠をクリア
+            document.querySelectorAll(".sort-arrow").forEach(span => {
+                span.textContent = "";
+            });
+
+            // ★ 今クリックした列の矢印枠に矢印を入れる
+            const arrow = sortAsc ? "▲" : "▼";
+            th.querySelector(".sort-arrow").textContent = arrow;
+
             renderRows();
         });
     });
