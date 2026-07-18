@@ -6,7 +6,7 @@ import venv
 import os
 
 
-APP_MODULE = 'src.asset_meta_manager.main'
+APP_MODULE = 'asset_meta_manager'
 
 
 if __name__ == '__main__':
