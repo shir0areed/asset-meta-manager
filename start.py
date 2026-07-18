@@ -9,8 +9,8 @@ APP_MODULE = 'asset_meta_manager'
 
 
 if __name__ == '__main__':
-    app_dir = pathlib.Path(__file__).resolve().parent
-    venv_dir = app_dir / 'venv'
+    script_dir = pathlib.Path(__file__).resolve().parent
+    venv_dir = script_dir / 'venv'
 
     # python -m venv .venv
     builder = venv.EnvBuilder(with_pip=True)
@@ -20,7 +20,7 @@ if __name__ == '__main__':
 
     # pip install -r requirements.txt
     subprocess.check_call(
-        [venv_python, '-m', 'pip', 'install', '-e', str(app_dir)],
+        [venv_python, '-m', 'pip', 'install', '-e', str(script_dir)],
     )
 
     # python main.py <args>
