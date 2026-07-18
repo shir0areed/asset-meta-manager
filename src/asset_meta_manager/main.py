@@ -5,12 +5,15 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 import uvicorn
 
-from src.asset_meta_manager.core.state import AppState
+from .core.state import AppState
 
+
+BASE_DIR = Path(__file__).resolve().parent
+STATIC_DIR = BASE_DIR / "static"
 
 app = FastAPI()
 
-app.mount("/static", StaticFiles(directory="src/asset_meta_manager/static"), name="static")
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 @app.on_event("startup")
 async def startup_event():
