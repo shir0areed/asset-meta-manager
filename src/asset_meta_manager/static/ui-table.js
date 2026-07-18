@@ -179,13 +179,14 @@ function renderRows() {
 
         // ★ 名前列
         if (editMode) {
-            html += `<td>
-                                            <input class="edit-cell"
-                                                   data-original="${item.name}"
-                                                   data-path="${item.path}"
-                                                   data-column="__name__"
-                                                   value="${item.name}">
-                                        </td>`;
+            html += `
+            <td>
+                <input class="edit-cell"
+                        data-original="${item.name}"
+                        data-path="${item.path}"
+                        data-column="__name__"
+                        value="${item.name}">
+            </td>`;
         } else {
             html += `<td>${item.name}</td>`;
         }
@@ -194,22 +195,23 @@ function renderRows() {
         if (editMode) {
             const thumb = item.thumbnail || "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIW2P4//8/AwAI/AL+Z4VHKwAAAABJRU5ErkJggg=="; // 透明1px
             html += `
-                                            <td style="white-space:nowrap;">
-                                                <img class="thumb-img"
-                                                     data-path="${item.path}"
-                                                     src="${thumb}"
-                                                     style="width:64px;height:64px;object-fit:cover;cursor:pointer;vertical-align:middle;">
-                                                <button class="thumb-delete-btn"
-                                                        data-path="${item.path}"
-                                                        style="margin-left:4px;">×</button>
-                                            </td>`;
+            <td style="white-space:nowrap;">
+                <img class="thumb-img"
+                        data-path="${item.path}"
+                        src="${thumb}"
+                        style="width:64px;height:64px;object-fit:cover;cursor:pointer;vertical-align:middle;">
+                <button class="thumb-delete-btn"
+                        data-path="${item.path}"
+                        style="margin-left:4px;">×</button>
+            </td>`;
         } else {
             const thumb = item.thumbnail || "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIW2P4//8/AwAI/AL+Z4VHKwAAAABJRU5ErkJggg==";
-            html += `<td>
-                                            <img class="thumb-view"
-                                                 src="${thumb}"
-                                                 style="width:64px;height:64px;object-fit:cover;cursor:pointer;">
-                                            </td>`;
+            html += `
+            <td>
+                <img class="thumb-view"
+                        src="${thumb}"
+                        style="width:64px;height:64px;object-fit:cover;cursor:pointer;">
+            </td>`;
         }
 
         // ★ カテゴリ列（編集不可）
@@ -218,13 +220,13 @@ function renderRows() {
         // ★ アノテーション列
         if (editMode) {
             html += item.annotations.map((v, i) => `
-                                            <td>
-                                                <input class="edit-cell"
-                                                       data-original="${v}"
-                                                       data-path="${item.path}"
-                                                       data-column="${data.annotation_columns[i].id}"
-                                                       value="${v}">
-                                            </td>`).join("");
+            <td>
+                <input class="edit-cell"
+                        data-original="${v}"
+                        data-path="${item.path}"
+                        data-column="${data.annotation_columns[i].id}"
+                        value="${v}">
+            </td>`).join("");
         } else {
             html += data.annotation_columns.map((col, i) => {
                 const v = item.annotations[i] || "";
