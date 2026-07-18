@@ -3,13 +3,10 @@ let editMode = false;
 /* ------------------------------
    編集モード（セル編集）
 ------------------------------ */
-const editToggleBtn = document.getElementById("edit-toggle");
+const editToggleBtn = document.getElementById("edit-toggle-checkbox");
 
-editToggleBtn.onclick = () => {
-    editMode = !editMode;
-    editToggleBtn.textContent =
-        editMode ? "編集モード: ON" : "編集モード: OFF";
-
+editToggleBtn.onchange = () => {
+    editMode = editToggleBtn.checked;
     load(); // 再描画
 };
 
