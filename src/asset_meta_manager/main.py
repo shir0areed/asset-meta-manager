@@ -18,6 +18,10 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 @app.on_event("startup")
 async def startup_event():
     state = app.state.manager
+    if state is None:
+        print("No identity loaded.")
+        return
+
     print("Scanned files:")
     for f in state.files:
         print(" -", f)
@@ -33,6 +37,13 @@ def instance_info():
     UI 実装前でもブラウザで確認できる。
     """
     state = app.state.manager
+    if state is None:
+        return {
+            "identity": None,
+            "instance_root": None,
+            "sibling_folders": [],
+        }
+
     return {
         "identity": str(state.identity_path),
         "instance_root": str(state.instance_root),
@@ -47,6 +58,13 @@ def scan_result():
     スキャンされたファイル一覧を返す。
     """
     state = app.state.manager
+    if state is None:
+        return {
+            "category_columns": [],
+            "annotation_columns": [],
+            "files": [],
+        }
+
     root = state.instance_root  # identity の親フォルダ
     category_columns = state.load_category_columns()
     annotation_columns = state.load_annotation_columns()
@@ -107,6 +125,9 @@ def download_file(path: str = Query(..., description="Relative POSIX path from i
     path は絶対パスで渡す。
     """
     state = app.state.manager
+    if state is None:
+        return FileResponse(None)  # 実際には UI 側で呼ばれない
+
     root = state.instance_root
 
     # 相対 POSIX パスを Path に戻す
@@ -117,12 +138,16 @@ def download_file(path: str = Query(..., description="Relative POSIX path from i
 @app.get("/category_columns")
 def get_category_columns():
     state = app.state.manager
+    if state is None:
+        return {"category_columns": []}
     return {"category_columns": state.load_category_columns()}
 
 
 @app.post("/category_columns/add")
 def add_category_columns(name: str = Form(...)):
     state = app.state.manager
+    if state is None:
+        return {"ok": False}
     state.add_category_columns(name)
     return {"ok": True}
 
@@ -130,6 +155,8 @@ def add_category_columns(name: str = Form(...)):
 @app.post("/category_columns/remove")
 def remove_category_columns(name: str = Form(...)):
     state = app.state.manager
+    if state is None:
+        return {"ok": False}  # 実際には UI 側で呼ばれない
     state.remove_category_columns(name)
     return {"ok": True}
 
@@ -137,12 +164,16 @@ def remove_category_columns(name: str = Form(...)):
 @app.get("/annotation_columns")
 def get_annotation_columns():
     state = app.state.manager
+    if state is None:
+        return {"annotation_columns": []}
     return {"annotation_columns": state.load_annotation_columns()}
 
 
 @app.post("/annotation_columns/add")
 def add_annotation_column(column_id: str = Form(...), label: str = Form(...), type: str = Form(...)):
     state = app.state.manager
+    if state is None:
+        return {"ok": False}
     ok = state.add_annotation_column(column_id, label, type)
     return {"ok": ok}
 
@@ -150,41 +181,57 @@ def add_annotation_column(column_id: str = Form(...), label: str = Form(...), ty
 @app.post("/annotation_columns/remove")
 def remove_annotation_column(column_id: str = Form(...)):
     state = app.state.manager
+    if state is None:
+        return {"ok": False}  # 実際には UI 側で呼ばれない
     state.remove_annotation_column(column_id)
     return {"ok": True}
 
 
 @app.post("/meta/update-name")
 def update_name(path: str = Form(...), value: str = Form(...)):
-    app.state.manager.update_name(path, value)
+    state = app.state.manager
+    if state is None:
+        return {"ok": False}  # 実際には UI 側で呼ばれない
+    state.update_name(path, value)
     return {"ok": True}
 
 
 @app.post("/meta/update-annotation")
 def update_annotation(path: str = Form(...), column_id: str = Form(...), value: str | None = Form("")):
-    app.state.manager.update_annotation(path, column_id, value or "")
+    state = app.state.manager
+    if state is None:
+        return {"ok": False}  # 実際には UI 側で呼ばれない
+    state.update_annotation(path, column_id, value or "")
     return {"ok": True}
 
 
 @app.post("/meta/update-thumbnail")
 def update_thumbnail(path: str = Form(...), value: str = Form(...)):
-    app.state.manager.update_thumbnail(path, value)
+    state = app.state.manager
+    if state is None:
+        return {"ok": False}  # 実際には UI 側で呼ばれない
+    state.update_thumbnail(path, value)
     return {"ok": True}
 
 
 @app.post("/meta/delete-thumbnail")
 def delete_thumbnail(path: str = Form(...)):
-    app.state.manager.update_thumbnail(path, None)
+    state = app.state.manager
+    if state is None:
+        return {"ok": False}  # 実際には UI 側で呼ばれない
+    state.update_thumbnail(path, None)
     return {"ok": True}
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("identity", help="Path to identity file")
+    parser.add_argument("identity", nargs="*", help="Zero or more identity files")
     args = parser.parse_args()
 
     # identity をロード
-    app.state.manager = AppState(identity_path=args.identity)
+    managers = [AppState(identity_path=p) for p in args.identity]
+    app.state.managers = managers
+    app.state.manager = managers[0] if managers else None
 
     # uvicorn 起動
     uvicorn.run(app, host="127.0.0.1", port=8000, reload=False)
