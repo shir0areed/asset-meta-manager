@@ -32,18 +32,18 @@
             transition: all 0.15s ease;
         }
 
-            /* フォーカス中（編集中） */
-            table input:focus {
-                border-color: #4a90e2; /* 濃い青 */
-                background: #eef6ff; /* 薄い青背景 */
-                outline: none;
-            }
+        /* フォーカス中（編集中） */
+        table input:focus {
+            border-color: #4a90e2; /* 濃い青 */
+            background: #eef6ff; /* 薄い青背景 */
+            outline: none;
+        }
 
-            /* フォーカスが外れた瞬間（確定） */
-            table input:not(:focus) {
-                border-color: #ddd; /* 薄いグレー */
-                background: #fafafa; /* ほんのり薄い背景 */
-            }
+        /* フォーカスが外れた瞬間（確定） */
+        table input:not(:focus) {
+            border-color: #ddd; /* 薄いグレー */
+            background: #fafafa; /* ほんのり薄い背景 */
+        }
     </style>
 </head>
 <body>
@@ -52,31 +52,57 @@
 
     <button id="edit-toggle">編集モード: OFF</button>
 
-    <form id="category-add-form">
-        <h2>カテゴリ列（フォルダ名取得列）編集</h2>
+    <button id="column-edit">列編集</button>
 
-        <input type="text" id="category-columns-name" placeholder="列名">
-        <button type="submit">追加</button>
-    </form>
+    <!-- ★ 列編集モーダル -->
+    <div id="column-modal" style="
+        display:none;
+        position:fixed;
+        inset:0;
+        background:rgba(0,0,0,0.6);
+        justify-content:center;
+        align-items:center;
+        z-index:9999;
+    ">
+        <div style="
+            background:white;
+            padding:20px;
+            width:600px;
+            max-height:80vh;
+            overflow-y:auto;
+            border-radius:8px;
+        ">
+            <h2>列編集</h2>
 
-    <ul id="category-columns-list"></ul>
+            <form id="category-add-form">
+                <h3>カテゴリ列（フォルダ名取得列）編集</h3>
 
+                <input type="text" id="category-columns-name" placeholder="列名">
+                <button type="submit">追加</button>
+            </form>
+
+            <ul id="category-columns-list"></ul>
+            
+
+            <form id="annotation-add-form">
+                <h3>アノテーション列（メタデータ取得列）編集</h3>
+
+                <input type="text" id="annotation-label" placeholder="列名">
+                <input type="text" id="annotation-id" placeholder="メタデータキー">
+                <select id="annotation-type">
+                    <option value="text">text</option>
+                    <option value="url">url</option>
+                </select>
+                <button type="submit">追加</button>
+            </form>
+
+            <ul id="annotation-columns-list"></ul>
+
+            <button id="close-column-modal">閉じる</button>
+        </div>
+    </div>
+    
     <script src="/static/ui-category-columns.js"></script>
-
-    <form id="annotation-add-form">
-        <h2>アノテーション列（メタデータ取得列）編集</h2>
-
-        <input type="text" id="annotation-label" placeholder="列名">
-        <input type="text" id="annotation-id" placeholder="メタデータキー">
-        <select id="annotation-type">
-            <option value="text">text</option>
-            <option value="url">url</option>
-        </select>
-        <button type="submit">追加</button>
-    </form>
-
-    <ul id="annotation-columns-list"></ul>
-
     <script src="/static/ui-annotation-columns.js"></script>
 
     <script src="/static/ui-edit-mode.js"></script>
