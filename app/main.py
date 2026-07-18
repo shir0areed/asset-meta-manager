@@ -177,7 +177,7 @@ def delete_thumbnail(path: str = Form(...)):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--identity", required=True, help="Path to identity file")
+    parser.add_argument("identity", help="Path to identity file")
     args = parser.parse_args()
 
     # identity をロード

@@ -28,5 +28,5 @@ if __name__ == '__main__':
 
     # python main.py <args>
     subprocess.check_call(
-        [venv_python, '-m', APP_MODULE, '--identity', sys.argv[1]] + sys.argv[2:]
+        [venv_python, '-m', APP_MODULE] + sys.argv[1:]
     )
