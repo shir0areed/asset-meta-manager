@@ -1,4 +1,0 @@
-cd /d "%~dp0"
-
-call .\venv\Scripts\activate.bat
-python -m app.main --identity "%~1"
