@@ -48,12 +48,28 @@
 </head>
 <body>
     <h2>Asset Meta Manager</h2>
-    <p id="count"></p>
 
-    <label>
-        <input type="checkbox" id="edit-toggle-checkbox">
-        編集モード
-    </label>
+    <div id="sidebar" style="
+        position:fixed;
+        right:20px;
+        bottom:20px;
+        width:200px;
+        padding:10px;
+        background:#fafafa;
+        border:1px solid #ddd;
+        border-radius:8px;
+    ">
+        <div style="margin-bottom:10px;">
+            ファイル数: <span id="count">0</span>
+        </div>
+
+        <label style="display:block; margin-bottom:10px;">
+            <input type="checkbox" id="edit-toggle-checkbox">
+            編集モード
+        </label>
+
+        <button id="column-edit" style="width:100%;">列編集</button>
+    </div>
 
     <div id="loading-overlay" style="
         display:none;
@@ -68,8 +84,6 @@
     ">
         読み込み中…
     </div>
-
-    <button id="column-edit">列編集</button>
 
     <!-- ★ 列編集モーダル -->
     <div id="column-modal" style="

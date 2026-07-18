@@ -17,7 +17,7 @@ async function load() {
     cachedData = await res.json();
 
     const count = document.getElementById("count");
-    count.textContent = `ファイル数: ${cachedData.files.length}`;
+    count.textContent = cachedData.files.length;
 
     initTableHeaders();
 
@@ -371,5 +371,10 @@ async function saveThumbnail(path, base64) {
     });
     load();
 }
+
+const sidebar = document.getElementById("sidebar");
+const spacer = document.createElement("div");
+spacer.style.height = sidebar.offsetHeight + "px";
+document.body.appendChild(spacer);
 
 load();
