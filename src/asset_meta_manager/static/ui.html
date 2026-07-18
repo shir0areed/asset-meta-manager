@@ -66,6 +66,8 @@
         border:1px solid #ddd;
         border-radius:8px;
     ">
+        <button id="identity-select" style="width:100%; margin-top:10px;">identity選択</button>
+
         <div style="margin-bottom:10px;">
             ファイル数: <span id="count">0</span>
         </div>
@@ -90,6 +92,33 @@
         color:#333;
     ">
         読み込み中…
+    </div>
+
+    <!-- ★ identity選択モーダル -->
+    <div id="identity-modal" style="
+        display:none;
+        position:fixed;
+        inset:0;
+        background:rgba(0,0,0,0.6);
+        justify-content:center;
+        align-items:center;
+        z-index:9999;
+    ">
+        <div style="
+            background:white;
+            padding:20px;
+            width:400px;
+            border-radius:8px;
+        ">
+            <h2>identity選択</h2>
+
+            <select id="identity-selector" style="width:100%; margin-bottom:20px;">
+                <!-- JS が /identities を叩いて埋める -->
+            </select>
+
+            <button id="identity-apply" style="width:100%; margin-bottom:10px;">適用</button>
+            <button id="close-identity-modal" style="width:100%;">閉じる</button>
+        </div>
     </div>
 
     <!-- ★ 列編集モーダル -->
@@ -139,6 +168,8 @@
             <button id="close-column-modal">閉じる</button>
         </div>
     </div>
+
+    <script src="/static/ui-identity.js"></script>
     
     <script src="/static/ui-category-columns.js"></script>
     <script src="/static/ui-annotation-columns.js"></script>

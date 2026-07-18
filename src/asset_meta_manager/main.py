@@ -51,6 +51,39 @@ def instance_info():
     }
 
 
+@app.get("/identities")
+def list_identities():
+    """
+    identity の一覧を返す。
+    identity が 0 個でも空リストを返す。
+    """
+    managers = app.state.managers
+    return {
+        "identities": [
+            {
+                "index": i,
+                "identity_path": str(m.identity_path),
+                "instance_root": str(m.instance_root),
+            }
+            for i, m in enumerate(managers)
+        ]
+    }
+
+
+@app.post("/set-identity")
+def set_identity(index: int = Form(...)):
+    """
+    UI が選択した identity を manager に設定する。
+    """
+    managers = app.state.managers
+
+    if index < 0 or index >= len(managers):
+        return {"ok": False, "error": "Invalid index"}
+
+    app.state.manager = managers[index]
+    return {"ok": True}
+
+
 @app.get("/scan-result")
 def scan_result():
     """
