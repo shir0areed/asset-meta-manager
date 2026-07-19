@@ -14,6 +14,164 @@ const pageSize = 10;
 // -----------------------------
 const loadingOverlay = document.getElementById("loading-overlay");
 
+function bindHeaderRowHandlers() {
+    const headerRow = document.getElementById("header-row");
+    const filterRow = document.getElementById("filter-row");
+
+    if (!headerRow || !filterRow) return;
+
+    headerRow.addEventListener("click", event => {
+        const th = event.target.closest(".sortable");
+        if (!th) return;
+
+        const col = th.dataset.col;
+        if (sortColumn === col) {
+            sortAsc = !sortAsc;
+        } else {
+            sortColumn = col;
+            sortAsc = true;
+        }
+
+        document.querySelectorAll(".sort-arrow").forEach(span => {
+            span.textContent = "";
+        });
+
+        const arrow = sortAsc ? "▲" : "▼";
+        th.querySelector(".sort-arrow").textContent = arrow;
+
+        renderRows();
+    });
+
+    filterRow.addEventListener("input", event => {
+        const input = event.target;
+        if (!input.matches(".filter-input")) return;
+
+        const col = input.dataset.col;
+        filterValues[col] = input.value;
+        renderRows();
+    });
+}
+
+function bindPaginationHandlers() {
+    const pag = document.getElementById("pagination");
+    if (!pag) return;
+
+    pag.addEventListener("click", event => {
+        const button = event.target.closest("button");
+        if (!button) return;
+
+        if (button.id === "page-prev") {
+            currentPage--;
+            renderRows();
+        }
+
+        if (button.id === "page-next") {
+            currentPage++;
+            renderRows();
+        }
+    });
+}
+
+function bindTableRowHandlers() {
+    const tbody = document.getElementById("file-table");
+    if (!tbody) return;
+
+    tbody.addEventListener("keydown", event => {
+        const input = event.target;
+        if (!input.matches(".edit-cell")) return;
+
+        if (event.key === "Enter") {
+            saveValue(input.dataset.path, input.dataset.column, input.value);
+            input.dataset.original = input.value;
+            input.blur();
+        }
+
+        if (event.key === "Escape") {
+            input.value = input.dataset.original;
+            input.blur();
+        }
+    });
+
+    tbody.addEventListener("focusout", event => {
+        const input = event.target;
+        if (!input.matches(".edit-cell")) return;
+
+        const newValue = input.value;
+        if (newValue === input.dataset.original) return;
+
+        const ok = confirm("変更を保存しますか？");
+        if (ok) {
+            saveValue(input.dataset.path, input.dataset.column, newValue);
+            input.dataset.original = input.value;
+        } else {
+            input.value = input.dataset.original;
+        }
+    });
+
+    tbody.addEventListener("click", async event => {
+        const deleteBtn = event.target.closest(".thumb-delete-btn");
+        if (deleteBtn) {
+            const path = deleteBtn.dataset.path;
+            await fetch("/meta/delete-thumbnail", {
+                method: "POST",
+                body: new URLSearchParams({ path })
+            });
+            load();
+            return;
+        }
+
+        const thumbImg = event.target.closest(".thumb-img");
+        if (thumbImg) {
+            const input = document.createElement("input");
+            input.type = "file";
+            input.accept = "image/*";
+            input.onchange = async () => {
+                const file = input.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = () => {
+                    saveThumbnail(thumbImg.dataset.path, reader.result);
+                };
+                reader.readAsDataURL(file);
+            };
+            input.click();
+            return;
+        }
+
+        const thumbView = event.target.closest(".thumb-view");
+        if (thumbView && !editMode) {
+            openLightBox(thumbView.src);
+        }
+    });
+
+    tbody.addEventListener("contextmenu", async event => {
+        const thumbImg = event.target.closest(".thumb-img");
+        if (!thumbImg) return;
+
+        event.preventDefault();
+        try {
+            const clipboardItems = await navigator.clipboard.read();
+            for (const item of clipboardItems) {
+                for (const type of item.types) {
+                    if (type.startsWith("image/")) {
+                        const blob = await item.getType(type);
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                            saveThumbnail(thumbImg.dataset.path, reader.result);
+                        };
+                        reader.readAsDataURL(blob);
+                        return;
+                    }
+                }
+            }
+            alert("クリップボードに画像がありません");
+        } catch {
+            alert("クリップボードから読み取れませんでした");
+        }
+    });
+}
+
 async function load() {
     loadingOverlay.style.display = "flex";
     const res = await fetch("/scan-result");
@@ -67,42 +225,6 @@ function initTableHeaders() {
 
     headerRow.innerHTML = headerHtml;
     filterRow.innerHTML = filterHtml;
-
-    // フィルタ入力イベント
-    document.querySelectorAll(".filter-input").forEach(input => {
-        const col = input.dataset.col;
-        input.addEventListener("input", () => {
-            filterValues[col] = input.value;
-            renderRows();
-        });
-    });
-
-
-    // -----------------------------
-    // ソートイベント
-    // -----------------------------
-    document.querySelectorAll(".sortable").forEach(th => {
-        th.addEventListener("click", () => {
-            const col = th.dataset.col;
-            if (sortColumn === col) {
-                sortAsc = !sortAsc;
-            } else {
-                sortColumn = col;
-                sortAsc = true;
-            }
-
-            // ★ 全ての矢印枠をクリア
-            document.querySelectorAll(".sort-arrow").forEach(span => {
-                span.textContent = "";
-            });
-
-            // ★ 今クリックした列の矢印枠に矢印を入れる
-            const arrow = sortAsc ? "▲" : "▼";
-            th.querySelector(".sort-arrow").textContent = arrow;
-
-            renderRows();
-        });
-    });
 }
 
 function renderRows() {
@@ -280,124 +402,6 @@ function renderRows() {
         <span> ${currentPage} / ${totalPages} </span>
         <button ${currentPage >= totalPages ? "disabled" : ""} id="page-next">次へ</button>
     `;
-
-    // イベント
-    document.getElementById("page-prev")?.addEventListener("click", () => {
-        currentPage--;
-        renderRows();
-    });
-    document.getElementById("page-next")?.addEventListener("click", () => {
-        currentPage++;
-        renderRows();
-    });
-
-    if (editMode) {
-        attachEditHandlers();
-    }
-
-    // 非編集モード時のサムネイル拡大
-    if (!editMode) {
-        document.querySelectorAll(".thumb-view").forEach(img => {
-            img.addEventListener("click", () => {
-                openLightBox(img.src);
-            });
-        });
-    }
-}
-
-// =====================================================
-// STEP6.5-A2: 値更新 UI のみ（保存 API はまだ呼ばない）
-// =====================================================
-function attachEditHandlers() {
-    document.querySelectorAll(".edit-cell").forEach(input => {
-
-        // Enter / ESC
-        input.addEventListener("keydown", e => {
-            if (e.key === "Enter") {
-                saveValue(input.dataset.path, input.dataset.column, input.value);
-
-                input.dataset.original = input.value;
-                input.blur();
-            }
-            if (e.key === "Escape") {
-                input.value = input.dataset.original;
-                input.blur();
-            }
-        });
-
-        // フォーカスアウト
-        input.addEventListener("blur", e => {
-            const newValue = input.value;
-            if (newValue === input.dataset.original) return;
-
-            const ok = confirm("変更を保存しますか？");
-            if (ok) {
-                saveValue(input.dataset.path, input.dataset.column, newValue);
-
-                input.dataset.original = input.value;
-            } else {
-                input.value = input.dataset.original;
-            }
-        });
-    });
-
-    // ★ サムネイル削除ボタン
-    document.querySelectorAll(".thumb-delete-btn").forEach(btn => {
-        btn.addEventListener("click", async () => {
-            const path = btn.dataset.path;
-            await fetch("/meta/delete-thumbnail", {
-                method: "POST",
-                body: new URLSearchParams({ path })
-            });
-            load();
-        });
-    });
-
-    // ★ サムネイル編集
-    document.querySelectorAll(".thumb-img").forEach(img => {
-
-        // 左クリック → ファイル選択
-        img.addEventListener("click", async () => {
-            const input = document.createElement("input");
-            input.type = "file";
-            input.accept = "image/*";
-            input.onchange = async () => {
-                const file = input.files[0];
-                if (!file) return;
-
-                const reader = new FileReader();
-                reader.onload = () => {
-                    saveThumbnail(img.dataset.path, reader.result);
-                };
-                reader.readAsDataURL(file);
-            };
-            input.click();
-        });
-
-        // 右クリック → クリップボードから貼り付け
-        img.addEventListener("contextmenu", async (e) => {
-            e.preventDefault();
-            try {
-                const clipboardItems = await navigator.clipboard.read();
-                for (const item of clipboardItems) {
-                    for (const type of item.types) {
-                        if (type.startsWith("image/")) {
-                            const blob = await item.getType(type);
-                            const reader = new FileReader();
-                            reader.onload = () => {
-                                saveThumbnail(img.dataset.path, reader.result);
-                            };
-                            reader.readAsDataURL(blob);
-                            return;
-                        }
-                    }
-                }
-                alert("クリップボードに画像がありません");
-            } catch {
-                alert("クリップボードから読み取れませんでした");
-            }
-        });
-    });
 }
 
 async function saveValue(path, column, value) {
@@ -424,9 +428,16 @@ async function saveThumbnail(path, base64) {
     load();
 }
 
+function initTableInteractions() {
+    bindHeaderRowHandlers();
+    bindPaginationHandlers();
+    bindTableRowHandlers();
+}
+
 const sidebar = document.getElementById("sidebar");
 const spacer = document.createElement("div");
 spacer.style.height = sidebar.offsetHeight + "px";
 document.body.appendChild(spacer);
 
+initTableInteractions();
 load();
