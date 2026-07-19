@@ -153,7 +153,7 @@ def scan_result():
         ]
 
         # --- 追加: 固定カテゴリを計算（ユーザー定義カテゴリ数を渡す） ---
-        fixed = _compute_fixed_categories_from_rel_with_usercats(rel_posix, len(category_columns))
+        fixed = _compute_fixed_categories_from_rel_with_usercats(rel, len(category_columns))
         vendor = fixed["vendor"]
         artifact = fixed["artifact"]
         version = fixed["version"]
@@ -350,22 +350,16 @@ def _resolve_path_from_rel(root: Path, rel_posix: str) -> Path:
 
 
 # --- 追加ユーティリティ: パス分解（カテゴリ列を考慮した固定カテゴリ割当） ---
-def _compute_fixed_categories_from_rel_with_usercats(rel_posix: str, user_cat_count: int):
+def _compute_fixed_categories_from_rel_with_usercats(rel: Path, user_cat_count: int):
     """
-    rel_posix: 'foo/bar/buzz/hoge/piyo.zip' のような POSIX 相対パス（先頭に / があっても可）
+    rel: 'foo/bar/buzz/hoge/piyo.zip' のような Path オブジェクト
     user_cat_count: category_columns の数（ユーザー定義カテゴリ列数）
     戻り値: dict with keys 'vendor','artifact','version'
     割当ルール: remaining の長さで左寄せ/右寄せを切り替える（詳細は既存仕様）
     """
-    p = rel_posix.lstrip("/")
-    parts = [x for x in p.split("/") if x != ""] if p != "" else []
+    parts = rel.parts  # ('foo', 'bar', 'buzz', 'hoge', 'piyo.zip')
 
-    # ファイル名と拡張子除去
-    filename = parts[-1] if len(parts) >= 1 else ""
-    if "." in filename:
-        name_without_ext = filename.rsplit(".", 1)[0]
-    else:
-        name_without_ext = filename
+    name_without_ext = rel.stem
 
     folder_parts = parts[:-1]  # フォルダ部分
     # remaining はユーザー定義カテゴリを除いた残り
