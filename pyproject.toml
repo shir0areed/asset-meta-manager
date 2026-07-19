@@ -6,3 +6,9 @@ dependencies = [
     "uvicorn",
     "python-multipart",
 ]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+asset_meta_manager = ["static/**"]
