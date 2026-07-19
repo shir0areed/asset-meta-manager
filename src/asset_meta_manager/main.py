@@ -158,12 +158,8 @@ def scan_result():
         artifact = fixed["artifact"]
         version = fixed["version"]
 
-        # name フィールドには artifact を入れる（フロントは name を表示するため）
-        name = artifact
-
         result.append({
             "path": rel_posix,
-            "name": name,
             "thumbnail": thumbnail,
             "categories": categories,
             "annotations": annotations,
