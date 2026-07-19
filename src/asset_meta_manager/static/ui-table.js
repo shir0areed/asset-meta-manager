@@ -235,6 +235,12 @@ function initTableHeaders() {
     headerHtml += `<th>ファイル</th>`;
     filterHtml += `<td></td>`;
 
+    // ★ raw フォーマットのときだけ Preview 列を追加
+    if (data.format === "raw") {
+        headerHtml += `<th>Preview</th>`;
+        filterHtml += `<td></td>`;
+    }
+
     headerRow.innerHTML = headerHtml;
     filterRow.innerHTML = filterHtml;
 }
@@ -400,6 +406,11 @@ function renderRows() {
 
         // ★ ファイル列
         html += `<td><a href="/file?path=${encodeURIComponent(item.path)}" download>Download</a></td>`;
+
+        // ★ raw フォーマットのときだけプレビュー列を追加
+        if (data.format === "raw") {
+            html += `<td><a href="/preview?path=${encodeURIComponent(item.path)}" target="_blank" rel="noopener">Preview</a></td>`;
+        }
 
         tr.innerHTML = html;
         tbody.appendChild(tr);
