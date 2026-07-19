@@ -303,6 +303,28 @@ def get_formats():
     """
     return {"formats": get_supported_formats()}
 
+
+@app.post("/set-format")
+def set_format(fmt: str = Form(...)):
+    """
+    選択されたフォーマットを現在選択中の database に適用する。
+    フォーマットがサポート外の場合はエラーを返す。
+    """
+    state = app.state.manager
+    if state is None:
+        return {"ok": False, "error": "No database selected"}
+
+    # set_format は AppState 側でサポートチェックを行い、True/False を返す想定
+    ok = state.set_format(fmt)
+    if not ok:
+        return {
+            "ok": False,
+            "error": "Unsupported format",
+            "supported": get_supported_formats()
+        }
+    return {"ok": True, "format": state.get_format()}
+
+
 def _resolve_path_from_rel(root: Path, rel_posix: str) -> Path:
     """
     相対 POSIX パス文字列を受け取り、instance_root の下にある実ファイルの絶対パスを返す。
