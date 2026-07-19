@@ -329,9 +329,33 @@ function renderRows() {
     }
 
     // -----------------------------
-    // ページネーション処理
+    // ★ vendor + artifact で行をマージする
     // -----------------------------
-    const totalPages = Math.ceil(rows.length / pageSize);
+    const grouped = {};
+    rows.forEach(item => {
+        const key = item.vendor + "||" + item.artifact;
+        if (!grouped[key]) {
+            grouped[key] = {
+                vendor: item.vendor,
+                artifact: item.artifact,
+                categories: item.categories,
+                annotations: item.annotations,
+                items: []  // version + path をここに集める
+            };
+        }
+        grouped[key].items.push({
+            version: item.version,
+            path: item.path,
+            thumbnail: item.thumbnail
+        });
+    });
+
+    const mergedRows = Object.values(grouped);
+
+    // -----------------------------
+    // ページネーション処理（mergedRows に対して行う）
+    // -----------------------------
+    const totalPages = Math.ceil(mergedRows.length / pageSize);
 
     // 現在ページが範囲外なら補正
     if (currentPage > totalPages) currentPage = totalPages;
@@ -340,30 +364,31 @@ function renderRows() {
     // ページに応じて rows を切り出す
     const start = (currentPage - 1) * pageSize;
     const end = start + pageSize;
-    const pageRows = rows.slice(start, end);
+    const pageRows = mergedRows.slice(start, end);
 
     // 行生成
     tbody.innerHTML = "";
-    pageRows.forEach(item => {
+    pageRows.forEach(row => {
         const tr = document.createElement("tr");
 
         let html = "";
 
-        // ★ サムネイル列
+        // ★ サムネイル列（最初の item の thumbnail を使う）
+        const firstItem = row.items[0];
+        const thumb = firstItem.thumbnail || "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIW2P4//8/AwAI/AL+Z4VHKwAAAABJRU5ErkJggg==";
+
         if (editMode) {
-            const thumb = item.thumbnail || "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIW2P4//8/AwAI/AL+Z4VHKwAAAABJRU5ErkJggg=="; // 透明1px
             html += `
             <td style="white-space:nowrap;">
                 <img class="thumb-img"
-                        data-path="${item.path}"
+                        data-path="${firstItem.path}"
                         src="${thumb}"
                         style="width:64px;height:64px;object-fit:cover;cursor:pointer;vertical-align:middle;">
                 <button class="thumb-delete-btn"
-                        data-path="${item.path}"
+                        data-path="${firstItem.path}"
                         style="margin-left:4px;">×</button>
             </td>`;
         } else {
-            const thumb = item.thumbnail || "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIW2P4//8/AwAI/AL+Z4VHKwAAAABJRU5ErkJggg==";
             html += `
             <td>
                 <img class="thumb-view"
@@ -373,25 +398,25 @@ function renderRows() {
         }
 
         // ★ カテゴリ列（編集不可）
-        html += item.categories.map(v => `<td>${v}</td>`).join("");
+        html += row.categories.map(v => `<td>${v}</td>`).join("");
 
-        // 固定カテゴリ vendor/artifact/version
-        html += `<td>${item.vendor}</td>`;
-        html += `<td>${item.artifact}</td>`;
+        // 固定カテゴリ vendor / artifact
+        html += `<td>${row.vendor}</td>`;
+        html += `<td>${row.artifact}</td>`;
 
         // ★ アノテーション列
         if (editMode) {
-            html += item.annotations.map((v, i) => `
+            html += row.annotations.map((v, i) => `
             <td>
                 <input class="edit-cell"
                         data-original="${v}"
-                        data-path="${item.path}"
+                        data-path="${firstItem.path}"
                         data-column="${data.annotation_columns[i].id}"
                         value="${v}">
             </td>`).join("");
         } else {
             html += data.annotation_columns.map((col, i) => {
-                const v = item.annotations[i] || "";
+                const v = row.annotations[i] || "";
 
                 if (col.type === "url" && v) {
                     return `
@@ -401,39 +426,48 @@ function renderRows() {
                             </a>
                         </td>`;
                 }
-
+                
                 return `<td>${v}</td>`;
             }).join("");
         }
 
+        // -----------------------------
+        // ★ version を縦に並べる（Download または Preview）
+        // -----------------------------
         if (data.format === "zip") {
-            // ★ ファイル列
-            html += `<td><a href="/file?path=${encodeURIComponent(item.path)}" download>${item.version}</a></td>`;
+            html += `<td>` +
+                row.items.map(it =>
+                    `<div><a href="/file?path=${encodeURIComponent(it.path)}" download>${it.version}</a></div>`
+                ).join("") +
+                `</td>`;
         } else if (data.format === "raw") {
-            // ★ raw フォーマットのときだけプレビュー列を追加（音声は audio、動画は video、それ以外はリンク）
-            const ext = (item.path.split('.').pop() || '').toLowerCase();
-            const audioExts = ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac'];
-            const videoExts = ['mp4', 'webm', 'ogg', 'mov', 'mkv'];
+            html += `<td>` +
+                row.items.map(it => {
+                    const ext = (it.path.split('.').pop() || '').toLowerCase();
+                    const audioExts = ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac'];
+                    const videoExts = ['mp4', 'webm', 'ogg', 'mov', 'mkv'];
 
-            if (audioExts.includes(ext)) {
-                html += `<td>
-                    <audio class="preview-media" controls preload="none" style="width:220px;">
-                        <source src="/preview?path=${encodeURIComponent(item.path)}" />
-                        お使いのブラウザは audio 要素をサポートしていません。
-                    </audio>
-                    <div style="font-size:12px;opacity:0.7;">${item.version}</div>
-                </td>`;
-            } else if (videoExts.includes(ext)) {
-                html += `<td>
-                    <video class="preview-media" controls preload="none" style="width:320px; max-width:100%;">
-                        <source src="/preview?path=${encodeURIComponent(item.path)}" />
-                        お使いのブラウザは video 要素をサポートしていません。
-                    </video>
-                    <div style="font-size:12px;opacity:0.7;">${item.version}</div>
-                </td>`;
-            } else {
-                html += `<td><a href="/preview?path=${encodeURIComponent(item.path)}" target="_blank" rel="noopener">${item.version}</a></td>`;
-            }
+                    if (audioExts.includes(ext)) {
+                        return `
+                        <div style="margin-bottom:8px;">
+                            <audio class="preview-media" controls preload="none" style="width:220px;">
+                                <source src="/preview?path=${encodeURIComponent(it.path)}" />
+                            </audio>
+                            <div style="font-size:12px;opacity:0.7;">${it.version}</div>
+                        </div>`;
+                    } else if (videoExts.includes(ext)) {
+                        return `
+                        <div style="margin-bottom:8px;">
+                            <video class="preview-media" controls preload="none" style="width:320px; max-width:100%;">
+                                <source src="/preview?path=${encodeURIComponent(it.path)}" />
+                            </video>
+                            <div style="font-size:12px;opacity:0.7;">${it.version}</div>
+                        </div>`;
+                    } else {
+                        return `<div><a href="/preview?path=${encodeURIComponent(it.path)}" target="_blank">${it.version}</a></div>`;
+                    }
+                }).join("") +
+                `</td>`;
         }
 
         tr.innerHTML = html;
