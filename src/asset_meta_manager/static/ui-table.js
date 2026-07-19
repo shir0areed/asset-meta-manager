@@ -53,9 +53,10 @@ function bindHeaderRowHandlers() {
 }
 
 function bindPaginationHandlers() {
-    const pagBottom = document.getElementById("pagination");
+    const pagTop = document.getElementById("pagination-top");
+    const pagBottom = document.getElementById("pagination-bottom");
 
-    [pagBottom].forEach(pag => {
+    [pagTop, pagBottom].forEach(pag => {
         if (!pag) return;
 
         pag.addEventListener("click", event => {
@@ -402,12 +403,15 @@ function renderRows() {
     // -----------------------------
     // ページネーション UI
     // -----------------------------
-    const pag = document.getElementById("pagination");
-    pag.innerHTML = `
-        <button ${currentPage <= 1 ? "disabled" : ""} data-action="prev">前へ</button>
-        <span> ${currentPage} / ${totalPages} </span>
-        <button ${currentPage >= totalPages ? "disabled" : ""} data-action="next">次へ</button>
-    `;
+    const pagTop = document.getElementById("pagination-top");
+    const pagBottom = document.getElementById("pagination-bottom");
+    [pagTop, pagBottom].forEach(pag => {
+        pag.innerHTML = `
+            <button ${currentPage <= 1 ? "disabled" : ""} data-action="prev">前へ</button>
+            <span> ${currentPage} / ${totalPages} </span>
+            <button ${currentPage >= totalPages ? "disabled" : ""} data-action="next">次へ</button>
+        `;
+    });
 }
 
 async function saveValue(path, column, value) {
