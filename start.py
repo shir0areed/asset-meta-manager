@@ -12,18 +12,18 @@ if __name__ == '__main__':
     script_dir = pathlib.Path(__file__).resolve().parent
     venv_dir = script_dir / 'venv'
 
-    # python -m venv .venv
+    # python -m venv <venv_dir>
     builder = venv.EnvBuilder(with_pip=True)
     builder.create(str(venv_dir))
     context = builder.ensure_directories(str(venv_dir))
     venv_python = context.env_exe
 
-    # pip install -r requirements.txt
+    # pip install -e .
     subprocess.check_call(
         [venv_python, '-m', 'pip', 'install', '-e', str(script_dir)],
     )
 
-    # python main.py <args>
+    # python -m <APP_MODULE> <args>
     subprocess.check_call(
         [venv_python, '-m', APP_MODULE] + sys.argv[1:]
     )

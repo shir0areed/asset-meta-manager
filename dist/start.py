@@ -29,13 +29,13 @@ if __name__ == '__main__':
 
     index_url = f"http://localhost:{port}/"
    
-    # python -m venv .venv
+    # python -m venv <venv_dir>
     builder = venv.EnvBuilder(with_pip=True)
     builder.create(str(venv_dir))
     context = builder.ensure_directories(str(venv_dir))
     venv_python = context.env_exe
 
-    # pip install -r requirements.txt
+    # pip install <APP_PACKAGE> --find-links <index_url>
     subprocess.check_call(
         [
             venv_python,
@@ -50,7 +50,7 @@ if __name__ == '__main__':
 
     server_proc.terminate()
 
-    # python main.py <args>
+    # python -m <APP_MODULE> <args>
     subprocess.check_call(
         [venv_python, '-m', APP_MODULE] + sys.argv[1:]
     )
