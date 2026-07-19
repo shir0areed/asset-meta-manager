@@ -227,9 +227,6 @@ function initTableHeaders() {
     headerHtml += `<th class="sortable" data-col="artifact">artifact <span class="sort-arrow"></span></th>`;
     filterHtml += `<td><input class="filter-input" data-col="artifact"></td>`;
 
-    headerHtml += `<th class="sortable" data-col="version">version <span class="sort-arrow"></span></th>`;
-    filterHtml += `<td><input class="filter-input" data-col="version"></td>`;
-
     data.annotation_columns.forEach((a, i) => {
         if (a.type === "url") {
             headerHtml += `<th>${a.label}</th>`;
@@ -289,10 +286,6 @@ function renderRows() {
         if (fvArtifact && !(item.artifact || "").toLowerCase().includes(fvArtifact.toLowerCase())) {
             return false;
         }
-        const fvVersion = filterValues["version"];
-        if (fvVersion && !(item.version || "").toLowerCase().includes(fvVersion.toLowerCase())) {
-            return false;
-        }
 
         // アノテーション
         for (let i = 0; i < data.annotation_columns.length; i++) {
@@ -324,9 +317,6 @@ function renderRows() {
             } else if (sortColumn === "artifact") {
                 va = a.artifact || "";
                 vb = b.artifact || "";
-            } else if (sortColumn === "version") {
-                va = a.version || "";
-                vb = b.version || "";
             } else if (sortColumn.startsWith("ann_")) {
                 const i = Number(sortColumn.split("_")[1]);
                 va = a.annotations[i] || "";
@@ -388,7 +378,6 @@ function renderRows() {
         // 固定カテゴリ vendor/artifact/version
         html += `<td>${item.vendor}</td>`;
         html += `<td>${item.artifact}</td>`;
-        html += `<td>${item.version}</td>`;
 
         // ★ アノテーション列
         if (editMode) {
@@ -419,7 +408,7 @@ function renderRows() {
 
         if (data.format === "zip") {
             // ★ ファイル列
-            html += `<td><a href="/file?path=${encodeURIComponent(item.path)}" download>Download</a></td>`;
+            html += `<td><a href="/file?path=${encodeURIComponent(item.path)}" download>${item.version}</a></td>`;
         } else if (data.format === "raw") {
             // ★ raw フォーマットのときだけプレビュー列を追加（音声は audio、動画は video、それ以外はリンク）
             const ext = (item.path.split('.').pop() || '').toLowerCase();
@@ -428,20 +417,22 @@ function renderRows() {
 
             if (audioExts.includes(ext)) {
                 html += `<td>
-                            <audio class="preview-media" controls preload="none" style="width:220px;">
-                                <source src="/preview?path=${encodeURIComponent(item.path)}" />
-                                お使いのブラウザは audio 要素をサポートしていません。
-                            </audio>
-                        </td>`;
+                    <audio class="preview-media" controls preload="none" style="width:220px;">
+                        <source src="/preview?path=${encodeURIComponent(item.path)}" />
+                        お使いのブラウザは audio 要素をサポートしていません。
+                    </audio>
+                    <div style="font-size:12px;opacity:0.7;">${item.version}</div>
+                </td>`;
             } else if (videoExts.includes(ext)) {
                 html += `<td>
-                            <video class="preview-media" controls preload="none" style="width:320px; max-width:100%;">
-                                <source src="/preview?path=${encodeURIComponent(item.path)}" />
-                                お使いのブラウザは video 要素をサポートしていません。
-                            </video>
-                        </td>`;
+                    <video class="preview-media" controls preload="none" style="width:320px; max-width:100%;">
+                        <source src="/preview?path=${encodeURIComponent(item.path)}" />
+                        お使いのブラウザは video 要素をサポートしていません。
+                    </video>
+                    <div style="font-size:12px;opacity:0.7;">${item.version}</div>
+                </td>`;
             } else {
-                html += `<td><a href="/preview?path=${encodeURIComponent(item.path)}" target="_blank" rel="noopener">Preview</a></td>`;
+                html += `<td><a href="/preview?path=${encodeURIComponent(item.path)}" target="_blank" rel="noopener">${item.version}</a></td>`;
             }
         }
 
