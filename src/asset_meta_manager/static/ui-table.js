@@ -407,9 +407,29 @@ function renderRows() {
         // ★ ファイル列
         html += `<td><a href="/file?path=${encodeURIComponent(item.path)}" download>Download</a></td>`;
 
-        // ★ raw フォーマットのときだけプレビュー列を追加
+        // ★ raw フォーマットのときだけプレビュー列を追加（音声は audio、動画は video、それ以外はリンク）
         if (data.format === "raw") {
-            html += `<td><a href="/preview?path=${encodeURIComponent(item.path)}" target="_blank" rel="noopener">Preview</a></td>`;
+            const ext = (item.path.split('.').pop() || '').toLowerCase();
+            const audioExts = ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac'];
+            const videoExts = ['mp4', 'webm', 'ogg', 'mov', 'mkv'];
+
+            if (audioExts.includes(ext)) {
+                html += `<td>
+                            <audio class="preview-media" controls preload="none" style="width:220px;">
+                                <source src="/preview?path=${encodeURIComponent(item.path)}" />
+                                お使いのブラウザは audio 要素をサポートしていません。
+                            </audio>
+                        </td>`;
+            } else if (videoExts.includes(ext)) {
+                html += `<td>
+                            <video class="preview-media" controls preload="none" style="width:320px; max-width:100%;">
+                                <source src="/preview?path=${encodeURIComponent(item.path)}" />
+                                お使いのブラウザは video 要素をサポートしていません。
+                            </video>
+                        </td>`;
+            } else {
+                html += `<td><a href="/preview?path=${encodeURIComponent(item.path)}" target="_blank" rel="noopener">Preview</a></td>`;
+            }
         }
 
         tr.innerHTML = html;
