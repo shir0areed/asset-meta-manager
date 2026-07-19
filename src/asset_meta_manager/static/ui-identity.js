@@ -94,3 +94,20 @@ identityApplyBtn.addEventListener("click", async () => {
         load();
     }
 });
+
+async function updateIdentityDisplay() {
+    const span = document.getElementById("current-identity");
+
+    const res = await fetch("/identities");
+    const data = await res.json();
+
+    const list = data.identities || [];
+    const current = data.current;
+
+    if (current == null || list.length === 0) {
+        span.textContent = "(identityなし)";
+        return;
+    }
+
+    span.textContent = list[current].identity_path;
+}
