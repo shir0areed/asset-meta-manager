@@ -15,20 +15,23 @@ app = FastAPI()
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
+
 @app.on_event("startup")
 async def startup_event():
     state = app.state.manager
     if state is None:
-        print("No identity loaded.")
+        print("No database loaded.")
         return
 
     print("Scanned files:")
     for f in state.files:
         print(" -", f)
 
+
 @app.get("/")
 def root():
     return RedirectResponse(url="/static/ui.html")
+
 
 @app.get("/instance-info")
 def instance_info():
@@ -39,23 +42,23 @@ def instance_info():
     state = app.state.manager
     if state is None:
         return {
-            "identity": None,
+            "database": None,
             "instance_root": None,
             "sibling_folders": [],
         }
 
     return {
-        "identity": str(state.identity_path),
+        "database": str(state.database_path),
         "instance_root": str(state.instance_root),
         "sibling_folders": [str(p) for p in state.sibling_folders],
     }
 
 
-@app.get("/identities")
-def list_identities():
+@app.get("/databases")
+def list_databases():
     """
-    identity の一覧を返す。
-    identity が 0 個でも空リストを返す。
+    database の一覧を返す。
+    database が 0 個でも空リストを返す。
     """
     managers = app.state.managers
     current = app.state.manager
@@ -70,10 +73,10 @@ def list_identities():
 
     return {
         "current": current_index,
-        "identities": [
+        "databases": [
             {
                 "index": i,
-                "identity_path": str(m.identity_path),
+                "database_path": str(m.database_path),
                 "instance_root": str(m.instance_root),
             }
             for i, m in enumerate(managers)
@@ -81,10 +84,10 @@ def list_identities():
     }
 
 
-@app.post("/set-identity")
-def set_identity(index: int = Form(...)):
+@app.post("/set-database")
+def set_database(index: int = Form(...)):
     """
-    UI が選択した identity を manager に設定する。
+    UI が選択した database を manager に設定する。
     """
     managers = app.state.managers
 
@@ -109,16 +112,16 @@ def scan_result():
             "files": [],
         }
 
-    root = state.instance_root  # identity の親フォルダ
+    root = state.instance_root  # database の親フォルダ
     category_columns = state.load_category_columns()
     annotation_columns = state.load_annotation_columns()
 
     result = []
 
     for p in state.files:
-        # identity からの相対パス（Path）
+        # database からの相対パス（Path）
         rel = p.relative_to(root)
-        
+
         # UI 用に POSIX 文字列へ
         rel_posix = rel.as_posix()
 
@@ -163,7 +166,7 @@ def scan_result():
 
 
 @app.get("/file")
-def download_file(path: str = Query(..., description="Relative POSIX path from identity root")):
+def download_file(path: str = Query(..., description="Relative POSIX path from database root")):
     """
     STEP4: ファイルダウンロード用エンドポイント。
     path は絶対パスで渡す。
@@ -178,6 +181,7 @@ def download_file(path: str = Query(..., description="Relative POSIX path from i
     abs_path = (root / Path(path)).resolve()
 
     return FileResponse(abs_path, filename=abs_path.name)
+
 
 @app.get("/category_columns")
 def get_category_columns():
@@ -269,11 +273,11 @@ def delete_thumbnail(path: str = Form(...)):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("identity", nargs="*", help="Zero or more identity files")
+    parser.add_argument("database", nargs="*", help="Zero or more database files")
     args = parser.parse_args()
 
-    # identity をロード
-    managers = [AppState(identity_path=p) for p in args.identity]
+    # database をロード
+    managers = [AppState(database_path=p) for p in args.database]
     app.state.managers = managers
     app.state.manager = managers[0] if managers else None
 

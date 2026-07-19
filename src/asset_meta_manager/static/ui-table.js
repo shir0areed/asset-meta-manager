@@ -193,8 +193,8 @@ async function load() {
     const count = document.getElementById("count");
     count.textContent = cachedData.files.length;
 
-    // ★ identity 表示を更新
-    updateIdentityDisplay();
+    // ★ database 表示を更新
+    updateDatabaseDisplay();
     
     initTableHeaders();
 

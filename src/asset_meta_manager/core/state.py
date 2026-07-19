@@ -5,21 +5,22 @@ import sqlite3
 
 META_SUFFIX = ".ameta"
 
+
 class AppState:
     """
-    STEP1: identity とインスタンスルートを保持
+    STEP1: database とインスタンスルートを保持
     STEP2: フォルダスキャン結果（ファイル一覧）を保持
     STEP3: 空 meta の自動生成
     STEP6-A: アノテーション列（id + label）の編集
     """
 
-    def __init__(self, identity_path: str):
-        self.identity_path: Path
+    def __init__(self, database_path: str):
+        self.database_path: Path
         self.instance_root: Path
         self.sibling_folders: List[Path] = []
         self.files: List[Path] = []
 
-        self._load_identity(identity_path)
+        self._load_database(database_path)
         self._scan_files()
         self._ensure_meta_files()  # ★ STEP3
         self._init_db()
@@ -29,24 +30,22 @@ class AppState:
     # ============================================================
 
     def load_category_columns(self) -> list[str]:
-        conn = sqlite3.connect(self.identity_path)
+        conn = sqlite3.connect(self.database_path)
         cur = conn.cursor()
         cur.execute("SELECT name FROM category_columns ORDER BY id")
         rows = [r[0] for r in cur.fetchall()]
         conn.close()
         return rows
 
-
     def add_category_columns(self, name: str):
-        conn = sqlite3.connect(self.identity_path)
+        conn = sqlite3.connect(self.database_path)
         cur = conn.cursor()
         cur.execute("INSERT OR IGNORE INTO category_columns (name) VALUES (?)", (name,))
         conn.commit()
         conn.close()
 
-
     def remove_category_columns(self, name: str):
-        conn = sqlite3.connect(self.identity_path)
+        conn = sqlite3.connect(self.database_path)
         cur = conn.cursor()
         cur.execute("DELETE FROM category_columns WHERE name = ?", (name,))
         conn.commit()
@@ -57,7 +56,7 @@ class AppState:
     # ============================================================
 
     def load_annotation_columns(self) -> list[dict]:
-        conn = sqlite3.connect(self.identity_path)
+        conn = sqlite3.connect(self.database_path)
         cur = conn.cursor()
         cur.execute("SELECT column_id, label, type FROM annotation_columns ORDER BY id")
         rows = [{"id": r[0], "label": r[1], "type": r[2]} for r in cur.fetchall()]
@@ -65,7 +64,7 @@ class AppState:
         return rows
 
     def add_annotation_column(self, column_id: str, label: str, type: str) -> bool:
-        conn = sqlite3.connect(self.identity_path)
+        conn = sqlite3.connect(self.database_path)
         cur = conn.cursor()
 
         # 既存IDチェック
@@ -83,7 +82,7 @@ class AppState:
         return True
 
     def remove_annotation_column(self, column_id: str):
-        conn = sqlite3.connect(self.identity_path)
+        conn = sqlite3.connect(self.database_path)
         cur = conn.cursor()
         cur.execute("DELETE FROM annotation_columns WHERE column_id = ?", (column_id,))
         conn.commit()
@@ -98,7 +97,7 @@ class AppState:
             return {}
         try:
             return json.loads(meta_path.read_text(encoding="utf-8"))
-        except:
+        except Exception:
             return {}
 
     # ============================================================
@@ -115,7 +114,6 @@ class AppState:
             )
         except Exception:
             return
-
 
     # ============================================================
     # 名前の更新
@@ -156,14 +154,14 @@ class AppState:
     # private methods
     # ------------------------------
 
-    def _load_identity(self, identity: str) -> None:
-        identity_path = Path(identity).resolve()
+    def _load_database(self, database: str) -> None:
+        database_path = Path(database).resolve()
 
-        if not identity_path.exists() or not identity_path.is_file():
-            raise FileNotFoundError(f"identity file not found: {identity_path}")
+        if not database_path.exists() or not database_path.is_file():
+            raise FileNotFoundError(f"database file not found: {database_path}")
 
-        self.identity_path = identity_path
-        self.instance_root = identity_path.parent
+        self.database_path = database_path
+        self.instance_root = database_path.parent
 
         # 同階層のフォルダ一覧を取得
         self.sibling_folders = [
@@ -211,7 +209,7 @@ class AppState:
                 meta_path.write_text("{}", encoding="utf-8")
 
     def _init_db(self):
-        conn = sqlite3.connect(self.identity_path)
+        conn = sqlite3.connect(self.database_path)
         cur = conn.cursor()
 
         # カテゴリ列
