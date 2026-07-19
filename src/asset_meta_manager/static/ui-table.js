@@ -75,6 +75,12 @@ function bindPaginationHandlers() {
                 currentPage++;
                 renderRows();
             }
+
+            // ★ ページネーションを押したらスクロールを戻す
+            window.scrollTo({
+                top: 0,
+                behavior: "smooth"
+            });
         });
     });
 }
