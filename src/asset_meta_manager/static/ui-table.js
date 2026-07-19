@@ -222,6 +222,16 @@ function initTableHeaders() {
         filterHtml += `<td><input class="filter-input" data-col="cat_${i}"></td>`;
     });
 
+    // 固定カテゴリ列 vendor / artifact / version
+    headerHtml += `<th class="sortable" data-col="vendor">vendor <span class="sort-arrow"></span></th>`;
+    filterHtml += `<td><input class="filter-input" data-col="vendor"></td>`;
+
+    headerHtml += `<th class="sortable" data-col="artifact">artifact <span class="sort-arrow"></span></th>`;
+    filterHtml += `<td><input class="filter-input" data-col="artifact"></td>`;
+
+    headerHtml += `<th class="sortable" data-col="version">version <span class="sort-arrow"></span></th>`;
+    filterHtml += `<td><input class="filter-input" data-col="version"></td>`;
+
     data.annotation_columns.forEach((a, i) => {
         if (a.type === "url") {
             headerHtml += `<th>${a.label}</th>`;
@@ -278,6 +288,20 @@ function renderRows() {
             }
         }
 
+        // 固定カテゴリフィルタ
+        const fvVendor = filterValues["vendor"];
+        if (fvVendor && !(item.vendor || "").toLowerCase().includes(fvVendor.toLowerCase())) {
+            return false;
+        }
+        const fvArtifact = filterValues["artifact"];
+        if (fvArtifact && !(item.artifact || "").toLowerCase().includes(fvArtifact.toLowerCase())) {
+            return false;
+        }
+        const fvVersion = filterValues["version"];
+        if (fvVersion && !(item.version || "").toLowerCase().includes(fvVersion.toLowerCase())) {
+            return false;
+        }
+
         // アノテーション
         for (let i = 0; i < data.annotation_columns.length; i++) {
             const key = `ann_${i}`;
@@ -305,6 +329,15 @@ function renderRows() {
                 const i = Number(sortColumn.split("_")[1]);
                 va = a.categories[i] || "";
                 vb = b.categories[i] || "";
+            } else if (sortColumn === "vendor") {
+                va = a.vendor || "";
+                vb = b.vendor || "";
+            } else if (sortColumn === "artifact") {
+                va = a.artifact || "";
+                vb = b.artifact || "";
+            } else if (sortColumn === "version") {
+                va = a.version || "";
+                vb = b.version || "";
             } else if (sortColumn.startsWith("ann_")) {
                 const i = Number(sortColumn.split("_")[1]);
                 va = a.annotations[i] || "";
@@ -376,6 +409,11 @@ function renderRows() {
 
         // ★ カテゴリ列（編集不可）
         html += item.categories.map(v => `<td>${v}</td>`).join("");
+
+        // 固定カテゴリ vendor/artifact/version
+        html += `<td>${item.vendor}</td>`;
+        html += `<td>${item.artifact}</td>`;
+        html += `<td>${item.version}</td>`;
 
         // ★ アノテーション列
         if (editMode) {
