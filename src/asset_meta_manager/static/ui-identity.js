@@ -4,29 +4,11 @@
 // -----------------------------
 // 要素取得
 // -----------------------------
-const titleAmm = document.getElementById("title-amm");
 const identityModal = document.getElementById("identity-modal");
 const identitySelectBtn = document.getElementById("identity-select");
 const identitySelector = document.getElementById("identity-selector");
 const identityApplyBtn = document.getElementById("identity-apply");
 const identityCloseBtn = document.getElementById("close-identity-modal");
-
-titleAmm.addEventListener("click", async () => {
-    // identity を None にする
-    const fd = new FormData();
-    fd.append("index", -1);   // ★ -1 を「未選択」の意味にする
-
-    await fetch("/set-identity", {
-        method: "POST",
-        body: fd
-    });
-
-    // identity 表示を更新
-    updateIdentityDisplay();
-
-    // テーブル再描画
-    load();
-});
 
 // -----------------------------
 // モーダル開閉

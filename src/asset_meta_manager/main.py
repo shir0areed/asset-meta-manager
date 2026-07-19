@@ -86,9 +86,6 @@ def set_identity(index: int = Form(...)):
     """
     UI が選択した identity を manager に設定する。
     """
-    if index == -1:
-        app.state.manager = None
-        return {"ok": True}
     managers = app.state.managers
 
     if index < 0 or index >= len(managers):
