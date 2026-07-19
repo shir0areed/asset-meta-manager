@@ -90,9 +90,9 @@ databaseApplyBtn.addEventListener("click", async () => {
     databaseModal.style.display = "none";
 
     // テーブル再読み込み
-    if (typeof load === "function") {
-        load();
-    }
+    loadCategoryColumns()
+    loadAnnotationColumns()
+    load();
 });
 
 async function updateDatabaseDisplay() {
