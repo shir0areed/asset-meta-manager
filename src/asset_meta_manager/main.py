@@ -7,7 +7,7 @@ from pathlib import Path
 import uvicorn
 from urllib.parse import unquote
 
-from .core.state import AppState
+from .core.state import AppState, get_supported_formats
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -295,6 +295,13 @@ def preview(path: str = Query(..., description="Relative POSIX path from databas
     headers = {"Content-Disposition": f'inline; filename="{abs_path.name}"'}
     return FileResponse(abs_path, filename=abs_path.name, headers=headers)
 
+
+@app.get("/formats")
+def get_formats():
+    """
+    サポートしているフォーマット一覧を返す。
+    """
+    return {"formats": get_supported_formats()}
 
 def _resolve_path_from_rel(root: Path, rel_posix: str) -> Path:
     """

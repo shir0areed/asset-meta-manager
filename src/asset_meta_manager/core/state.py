@@ -4,7 +4,8 @@ import json
 import sqlite3
 
 META_SUFFIX = ".ameta"
-DEFAULT_FORMAT = "zip"
+FORMATS = ["zip", "raw"]
+DEFAULT_FORMAT = FORMATS[0]
 
 
 class AppState:
@@ -260,3 +261,7 @@ class AppState:
             cur = conn.cursor()
             cur.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", ("format", fmt))
             conn.commit()
+
+def get_supported_formats() -> List[str]:
+    """サポートしているフォーマット一覧を返す（順序は重要、デフォルトは先頭要素）。"""
+    return list(FORMATS)
