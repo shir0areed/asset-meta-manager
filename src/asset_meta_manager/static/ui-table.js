@@ -53,22 +53,28 @@ function bindHeaderRowHandlers() {
 }
 
 function bindPaginationHandlers() {
-    const pag = document.getElementById("pagination");
-    if (!pag) return;
+    const pagBottom = document.getElementById("pagination");
 
-    pag.addEventListener("click", event => {
-        const button = event.target.closest("button");
-        if (!button) return;
+    [pagBottom].forEach(pag => {
+        if (!pag) return;
 
-        if (button.id === "page-prev") {
-            currentPage--;
-            renderRows();
-        }
+        pag.addEventListener("click", event => {
+            const button = event.target.closest("button");
+            if (!button) return;
 
-        if (button.id === "page-next") {
-            currentPage++;
-            renderRows();
-        }
+            const action = button.dataset.action;
+            if (!action) return;
+
+            if (action === "prev") {
+                currentPage--;
+                renderRows();
+            }
+
+            if (action === "next") {
+                currentPage++;
+                renderRows();
+            }
+        });
     });
 }
 
@@ -398,9 +404,9 @@ function renderRows() {
     // -----------------------------
     const pag = document.getElementById("pagination");
     pag.innerHTML = `
-        <button ${currentPage <= 1 ? "disabled" : ""} id="page-prev">前へ</button>
+        <button ${currentPage <= 1 ? "disabled" : ""} data-action="prev">前へ</button>
         <span> ${currentPage} / ${totalPages} </span>
-        <button ${currentPage >= totalPages ? "disabled" : ""} id="page-next">次へ</button>
+        <button ${currentPage >= totalPages ? "disabled" : ""} data-action="next">次へ</button>
     `;
 }
 
