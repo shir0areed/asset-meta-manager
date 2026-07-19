@@ -6,6 +6,7 @@ import sqlite3
 META_SUFFIX = ".ameta"
 FORMATS = ["zip", "raw"]
 DEFAULT_FORMAT = FORMATS[0]
+DEFAULT_VERSION = "1.0.0"
 
 
 class AppState:
@@ -266,3 +267,7 @@ class AppState:
 def get_supported_formats() -> List[str]:
     """サポートしているフォーマット一覧を返す（順序は重要、デフォルトは先頭要素）。"""
     return list(FORMATS)
+
+def get_default_version() -> str:
+    """デフォルトバージョンを返す"""
+    return DEFAULT_VERSION

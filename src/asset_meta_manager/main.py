@@ -7,7 +7,7 @@ from pathlib import Path
 import uvicorn
 from urllib.parse import quote, unquote
 
-from .core.state import AppState, get_supported_formats
+from .core.state import AppState, get_supported_formats, get_default_version
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -127,22 +127,18 @@ def scan_result():
     for p in state.files:
         # database からの相対パス（Path）
         rel = p.relative_to(root)
-
+        
         # UI 用に POSIX 文字列へ
         rel_posix = rel.as_posix()
 
         # ★ meta.json をロード
         meta = state.load_meta(p)
-
-        # ★ 名前（meta に name があれば優先）
-        name = meta.get("name", p.stem)
-
         thumbnail = meta.get("thumbnail", None)
 
         # 相対パスを分解してフォルダ部分を抽出
         parts = rel_posix.split("/")          # ["foo","bar","buzz","data.zip"]
         folder_parts = parts[:-1]             # ["foo","bar","buzz"]
-
+        
         # ★ STEP5-B：カテゴリ列にフォルダ名を割り当てる
         categories = [
             folder_parts[i] if i < len(folder_parts) else ""
@@ -156,12 +152,24 @@ def scan_result():
             for col in annotation_columns
         ]
 
+        # --- 追加: 固定カテゴリを計算（ユーザー定義カテゴリ数を渡す） ---
+        fixed = _compute_fixed_categories_from_rel_with_usercats(rel_posix, len(category_columns))
+        vendor = fixed["vendor"]
+        artifact = fixed["artifact"]
+        version = fixed["version"]
+
+        # name フィールドには artifact を入れる（フロントは name を表示するため）
+        name = artifact
+
         result.append({
             "path": rel_posix,
             "name": name,
             "thumbnail": thumbnail,
             "categories": categories,
             "annotations": annotations,
+            "vendor": vendor,
+            "artifact": artifact,
+            "version": version,
         })
 
     # ここで format を付与（UI が追加の API 呼び出しなしに判定できるようにする）
@@ -244,11 +252,7 @@ def remove_annotation_column(column_id: str = Form(...)):
 
 @app.post("/meta/update-name")
 def update_name(path: str = Form(...), value: str = Form(...)):
-    state = app.state.manager
-    if state is None:
-        return {"ok": False}  # 実際には UI 側で呼ばれない
-    state.update_name(path, value)
-    return {"ok": True}
+    return {"ok": False}
 
 
 @app.post("/meta/update-annotation")
@@ -348,6 +352,59 @@ def _resolve_path_from_rel(root: Path, rel_posix: str) -> Path:
         raise HTTPException(status_code=404, detail="Not found")
 
     return abs_path
+
+
+# --- 追加ユーティリティ: パス分解（カテゴリ列を考慮した固定カテゴリ割当） ---
+def _compute_fixed_categories_from_rel_with_usercats(rel_posix: str, user_cat_count: int):
+    """
+    rel_posix: 'foo/bar/buzz/hoge/piyo.zip' のような POSIX 相対パス（先頭に / があっても可）
+    user_cat_count: category_columns の数（ユーザー定義カテゴリ列数）
+    戻り値: dict with keys 'vendor','artifact','version'
+    割当ルール: remaining の長さで左寄せ/右寄せを切り替える（詳細は既存仕様）
+    """
+    p = rel_posix.lstrip("/")
+    parts = [x for x in p.split("/") if x != ""] if p != "" else []
+
+    # ファイル名と拡張子除去
+    filename = parts[-1] if len(parts) >= 1 else ""
+    if "." in filename:
+        name_without_ext = filename.rsplit(".", 1)[0]
+    else:
+        name_without_ext = filename
+
+    folder_parts = parts[:-1]  # フォルダ部分
+    # remaining はユーザー定義カテゴリを除いた残り
+    remaining = folder_parts[user_cat_count:] if user_cat_count < len(folder_parts) else []
+    r = len(remaining)
+
+    vendor = ""
+    artifact = ""
+    version = None  # デフォルトは None にして最後に一度だけフォールバック
+
+    if r >= 4:
+        # 右寄せ: last 3 を vendor/artifact/version に割当
+        vendor = remaining[r - 3]
+        artifact = remaining[r - 2]
+        version = remaining[r - 1]
+    elif r == 3:
+        # 左寄せ: 先頭->vendor, 次->artifact, 次->version
+        vendor = remaining[0]
+        artifact = remaining[1]
+        version = remaining[2]
+    elif r == 2:
+        vendor = remaining[0]
+        artifact = remaining[1]
+        version = get_default_version()
+    elif r == 1:
+        vendor = remaining[0]
+        artifact = name_without_ext
+        version = get_default_version()
+    else:  # r == 0
+        vendor = ""
+        artifact = name_without_ext
+        version = get_default_version()
+
+    return {"vendor": vendor, "artifact": artifact, "version": version}
 
 
 def load_databases_from_toml(toml_path: Path):
