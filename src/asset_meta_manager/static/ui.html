@@ -167,6 +167,19 @@
 
             <ul id="annotation-columns-list"></ul>
 
+            <!-- フォーマットセレクタをここに追加（デザイン変更最小） -->
+            <div style="margin-top:12px; margin-bottom:8px; display:flex; gap:8px; align-items:center;">
+                <label for="format-select" style="display:block; margin-bottom:6px; font-weight:600; width:100%;">フォーマット</label>
+            </div>
+
+            <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px;">
+                <select id="format-select" style="flex:1; padding:6px; box-sizing:border-box; border:1px solid #ccc;">
+                    <!-- JS が /formats を叩いて埋める（{"formats":[...]} を想定） -->
+                </select>
+                <!-- 右に適用ボタンを追加（最小スタイル） -->
+                <button id="format-apply" style="padding:6px 12px;">適用</button>
+            </div>
+
             <button id="close-column-modal">閉じる</button>
         </div>
     </div>
