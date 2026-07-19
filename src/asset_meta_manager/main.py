@@ -1,10 +1,11 @@
 import argparse
-from fastapi import FastAPI, Query, Form
+from fastapi import FastAPI, Query, Form, HTTPException
 from fastapi.responses import RedirectResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 import tomllib
 from pathlib import Path
 import uvicorn
+from urllib.parse import unquote
 
 from .core.state import AppState
 
@@ -46,12 +47,14 @@ def instance_info():
             "database": None,
             "instance_root": None,
             "sibling_folders": [],
+            "format": None,
         }
 
     return {
         "database": str(state.database_path),
         "instance_root": str(state.instance_root),
         "sibling_folders": [str(p) for p in state.sibling_folders],
+        "format": state.get_format(),
     }
 
 
@@ -79,6 +82,7 @@ def list_databases():
                 "index": i,
                 "database_path": str(m.database_path),
                 "instance_root": str(m.instance_root),
+                "format": m.get_format(),
             }
             for i, m in enumerate(managers)
         ]
@@ -111,6 +115,7 @@ def scan_result():
             "category_columns": [],
             "annotation_columns": [],
             "files": [],
+            "format": None,
         }
 
     root = state.instance_root  # database の親フォルダ
@@ -159,10 +164,12 @@ def scan_result():
             "annotations": annotations,
         })
 
+    # ここで format を付与（UI が追加の API 呼び出しなしに判定できるようにする）
     return {
         "category_columns": category_columns,
         "annotation_columns": annotation_columns,
         "files": result,
+        "format": state.get_format(),
     }
 
 
@@ -170,17 +177,16 @@ def scan_result():
 def download_file(path: str = Query(..., description="Relative POSIX path from database root")):
     """
     STEP4: ファイルダウンロード用エンドポイント。
-    path は絶対パスで渡す。
+    path は相対 POSIX パスで渡す。
+    既存のダウンロード挙動はそのまま維持する（Content-Disposition は attachment 相当）。
     """
     state = app.state.manager
     if state is None:
         return FileResponse(None)  # 実際には UI 側で呼ばれない
 
-    root = state.instance_root
+    abs_path = _resolve_path_from_rel(state.instance_root, path)
 
-    # 相対 POSIX パスを Path に戻す
-    abs_path = (root / Path(path)).resolve()
-
+    # FileResponse はデフォルトでダウンロード向けの挙動になる（ブラウザ依存）
     return FileResponse(abs_path, filename=abs_path.name)
 
 
@@ -270,6 +276,42 @@ def delete_thumbnail(path: str = Form(...)):
         return {"ok": False}  # 実際には UI 側で呼ばれない
     state.update_thumbnail(path, None)
     return {"ok": True}
+
+
+@app.get("/preview")
+def preview(path: str = Query(..., description="Relative POSIX path from database root")):
+    """
+    プレビュー用エンドポイント（最小実装）。
+    download_file と重複しないよう、ファイル解決は共通ヘルパーを使う。
+    返却時に Content-Disposition を inline にしてブラウザで開かせる。
+    """
+    state = app.state.manager
+    if state is None:
+        raise HTTPException(status_code=404, detail="No database selected")
+
+    abs_path = _resolve_path_from_rel(state.instance_root, path)
+
+    # inline 指定の Content-Disposition を付けて返す
+    headers = {"Content-Disposition": f'inline; filename="{abs_path.name}"'}
+    return FileResponse(abs_path, filename=abs_path.name, headers=headers)
+
+
+def _resolve_path_from_rel(root: Path, rel_posix: str) -> Path:
+    """
+    相対 POSIX パス文字列を受け取り、instance_root の下にある実ファイルの絶対パスを返す。
+    見つからない / instance_root の外に出る場合は HTTPException(404) を投げる。
+    共通化して download_file と preview で使う。
+    （Python 3.9 以上を前提に is_relative_to を使う実装）
+    """
+    # URL デコードして Path に戻す
+    rel = Path(unquote(rel_posix))
+    abs_path = (root / rel).resolve()
+
+    # 安全チェック: instance_root の外に出ないこと
+    if not abs_path.is_file() or not abs_path.is_relative_to(root):
+        raise HTTPException(status_code=404, detail="Not found")
+
+    return abs_path
 
 
 def load_databases_from_toml(toml_path: Path):

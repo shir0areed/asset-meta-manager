@@ -4,6 +4,7 @@ import json
 import sqlite3
 
 META_SUFFIX = ".ameta"
+DEFAULT_FORMAT = "zip"
 
 
 class AppState:
@@ -230,5 +231,49 @@ class AppState:
             )
         """)
 
+        # settings テーブル（key/value）
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL
+            )
+        """)
+
+        conn.commit()
+        conn.close()
+
+    def get_format(self) -> str:
+        """
+        settings テーブルから format を取得して返す。
+        存在しなければ INSERT OR IGNORE で既定値を挿入してから取得する（遅延初期化）。
+        """
+        conn = None
+        try:
+            conn = sqlite3.connect(self.database_path)
+            cur = conn.cursor()
+
+            # 存在しなければ既定値を挿入する（INSERT OR IGNORE により原子的に存在判定と挿入が行われる）
+            cur.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", ("format", DEFAULT_FORMAT))
+            conn.commit()
+
+            # その後に値を取得する
+            cur.execute("SELECT value FROM settings WHERE key = ?", ("format",))
+            row = cur.fetchone()
+            if row and row[0]:
+                return row[0]
+        except Exception:
+            # DB 読み取りに失敗した場合は既定値を返す（DB には何もしない）
+            pass
+        finally:
+            if conn:
+                conn.close()
+        return DEFAULT_FORMAT
+
+    def set_format(self, fmt: str):
+        """DB に format を保存する（キャッシュは持たない）"""
+        fmt = fmt or DEFAULT_FORMAT
+        conn = sqlite3.connect(self.database_path)
+        cur = conn.cursor()
+        cur.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", ("format", fmt))
         conn.commit()
         conn.close()
