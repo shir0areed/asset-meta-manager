@@ -217,12 +217,11 @@ function initTableHeaders() {
     });
 
     data.annotation_columns.forEach((a, i) => {
-        headerHtml += `<th class="sortable" data-col="ann_${i}">${a.label} <span class="sort-arrow"></span></th>`;
-
         if (a.type === "url") {
-            // ★ URL 型は検索ボックスなし
+            headerHtml += `<th>${a.label}</th>`;
             filterHtml += `<td></td>`;
         } else {
+            headerHtml += `<th class="sortable" data-col="ann_${i}">${a.label} <span class="sort-arrow"></span></th>`;
             filterHtml += `<td><input class="filter-input" data-col="ann_${i}"></td>`;
         }
     });
