@@ -2,6 +2,7 @@ import argparse
 from fastapi import FastAPI, Query, Form
 from fastapi.responses import RedirectResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
+import tomllib
 from pathlib import Path
 import uvicorn
 
@@ -271,13 +272,39 @@ def delete_thumbnail(path: str = Form(...)):
     return {"ok": True}
 
 
+def load_databases_from_toml(toml_path: Path):
+    if not toml_path.exists():
+        raise FileNotFoundError(f"TOML not found: {toml_path}")
+
+    data = tomllib.loads(toml_path.read_text(encoding="utf-8"))
+
+    # TOML の仕様:
+    # [[database]]
+    # path = "/path/to/db"
+    db_entries = data.get("database", [])
+
+    managers = []
+    for entry in db_entries:
+        p = Path(entry["path"])
+        managers.append(AppState(database_path=p))
+
+    return managers
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("database", nargs="*", help="Zero or more database files")
+    parser.add_argument(
+        "database_toml",
+        nargs="?",
+        default="databases.toml",
+        help="TOML file listing databases"
+    )
     args = parser.parse_args()
 
+    toml_path = Path(args.database_toml)
+
     # database をロード
-    managers = [AppState(database_path=p) for p in args.database]
+    managers = load_databases_from_toml(toml_path)
     app.state.managers = managers
     app.state.manager = managers[0] if managers else None
 
