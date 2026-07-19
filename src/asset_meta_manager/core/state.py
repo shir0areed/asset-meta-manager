@@ -261,6 +261,7 @@ class AppState:
             cur = conn.cursor()
             cur.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", ("format", fmt))
             conn.commit()
+        return True
 
 def get_supported_formats() -> List[str]:
     """サポートしているフォーマット一覧を返す（順序は重要、デフォルトは先頭要素）。"""
