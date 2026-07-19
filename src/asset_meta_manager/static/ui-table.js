@@ -232,11 +232,11 @@ function initTableHeaders() {
         }
     });
 
-    headerHtml += `<th>ファイル</th>`;
-    filterHtml += `<td></td>`;
-
-    // ★ raw フォーマットのときだけ Preview 列を追加
-    if (data.format === "raw") {
+    if (data.format === "zip") {
+        headerHtml += `<th>ファイル</th>`;
+        filterHtml += `<td></td>`;
+    } else if (data.format === "raw") {
+        // ★ raw フォーマットのときだけ Preview 列を追加
         headerHtml += `<th>Preview</th>`;
         filterHtml += `<td></td>`;
     }
@@ -404,11 +404,11 @@ function renderRows() {
             }).join("");
         }
 
-        // ★ ファイル列
-        html += `<td><a href="/file?path=${encodeURIComponent(item.path)}" download>Download</a></td>`;
-
-        // ★ raw フォーマットのときだけプレビュー列を追加（音声は audio、動画は video、それ以外はリンク）
-        if (data.format === "raw") {
+        if (data.format === "zip") {
+            // ★ ファイル列
+            html += `<td><a href="/file?path=${encodeURIComponent(item.path)}" download>Download</a></td>`;
+        } else if (data.format === "raw") {
+            // ★ raw フォーマットのときだけプレビュー列を追加（音声は audio、動画は video、それ以外はリンク）
             const ext = (item.path.split('.').pop() || '').toLowerCase();
             const audioExts = ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac'];
             const videoExts = ['mp4', 'webm', 'ogg', 'mov', 'mkv'];
