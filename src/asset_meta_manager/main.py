@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 import tomllib
 from pathlib import Path
 import uvicorn
-from urllib.parse import unquote
+from urllib.parse import quote, unquote
 
 from .core.state import AppState, get_supported_formats
 
@@ -292,7 +292,14 @@ def preview(path: str = Query(..., description="Relative POSIX path from databas
     abs_path = _resolve_path_from_rel(state.instance_root, path)
 
     # inline 指定の Content-Disposition を付けて返す
-    headers = {"Content-Disposition": f'inline; filename="{abs_path.name}"'}
+    fname = abs_path.name
+    # ASCII フォールバック（ASCII に変換して空なら 'file'）
+    ascii_fname = fname.encode("ascii", "ignore").decode("ascii") or "file"
+    # UTF-8 を URL エンコードした filename*
+    encoded = quote(fname, safe='')
+    content_disposition = f'inline; filename="{ascii_fname}"; filename*=UTF-8\'\'{encoded}'
+
+    headers = {"Content-Disposition": content_disposition}
     return FileResponse(abs_path, filename=abs_path.name, headers=headers)
 
 
