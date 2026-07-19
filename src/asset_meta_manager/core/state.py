@@ -31,63 +31,56 @@ class AppState:
     # ============================================================
 
     def load_category_columns(self) -> list[str]:
-        conn = sqlite3.connect(self.database_path)
-        cur = conn.cursor()
-        cur.execute("SELECT name FROM category_columns ORDER BY id")
-        rows = [r[0] for r in cur.fetchall()]
-        conn.close()
+        with sqlite3.connect(self.database_path) as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT name FROM category_columns ORDER BY id")
+            rows = [r[0] for r in cur.fetchall()]
         return rows
 
     def add_category_columns(self, name: str):
-        conn = sqlite3.connect(self.database_path)
-        cur = conn.cursor()
-        cur.execute("INSERT OR IGNORE INTO category_columns (name) VALUES (?)", (name,))
-        conn.commit()
-        conn.close()
+        with sqlite3.connect(self.database_path) as conn:
+            cur = conn.cursor()
+            cur.execute("INSERT OR IGNORE INTO category_columns (name) VALUES (?)", (name,))
+            conn.commit()
 
     def remove_category_columns(self, name: str):
-        conn = sqlite3.connect(self.database_path)
-        cur = conn.cursor()
-        cur.execute("DELETE FROM category_columns WHERE name = ?", (name,))
-        conn.commit()
-        conn.close()
+        with sqlite3.connect(self.database_path) as conn:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM category_columns WHERE name = ?", (name,))
+            conn.commit()
 
     # ============================================================
     # アノテーション列（id + label）
     # ============================================================
 
     def load_annotation_columns(self) -> list[dict]:
-        conn = sqlite3.connect(self.database_path)
-        cur = conn.cursor()
-        cur.execute("SELECT column_id, label, type FROM annotation_columns ORDER BY id")
-        rows = [{"id": r[0], "label": r[1], "type": r[2]} for r in cur.fetchall()]
-        conn.close()
+        with sqlite3.connect(self.database_path) as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT column_id, label, type FROM annotation_columns ORDER BY id")
+            rows = [{"id": r[0], "label": r[1], "type": r[2]} for r in cur.fetchall()]
         return rows
 
     def add_annotation_column(self, column_id: str, label: str, type: str) -> bool:
-        conn = sqlite3.connect(self.database_path)
-        cur = conn.cursor()
+        with sqlite3.connect(self.database_path) as conn:
+            cur = conn.cursor()
 
-        # 既存IDチェック
-        cur.execute("SELECT COUNT(*) FROM annotation_columns WHERE column_id = ?", (column_id,))
-        if cur.fetchone()[0] > 0:
-            conn.close()
-            return False
+            # 既存IDチェック
+            cur.execute("SELECT COUNT(*) FROM annotation_columns WHERE column_id = ?", (column_id,))
+            if cur.fetchone()[0] > 0:
+                return False
 
-        cur.execute(
-            "INSERT INTO annotation_columns (column_id, label, type) VALUES (?, ?, ?)",
-            (column_id, label, type)
-        )
-        conn.commit()
-        conn.close()
+            cur.execute(
+                "INSERT INTO annotation_columns (column_id, label, type) VALUES (?, ?, ?)",
+                (column_id, label, type)
+            )
+            conn.commit()
         return True
 
     def remove_annotation_column(self, column_id: str):
-        conn = sqlite3.connect(self.database_path)
-        cur = conn.cursor()
-        cur.execute("DELETE FROM annotation_columns WHERE column_id = ?", (column_id,))
-        conn.commit()
-        conn.close()
+        with sqlite3.connect(self.database_path) as conn:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM annotation_columns WHERE column_id = ?", (column_id,))
+            conn.commit()
 
     # ============================================================
     # STEP6.5-B: meta.json のロード
@@ -210,46 +203,43 @@ class AppState:
                 meta_path.write_text("{}", encoding="utf-8")
 
     def _init_db(self):
-        conn = sqlite3.connect(self.database_path)
-        cur = conn.cursor()
+        with sqlite3.connect(self.database_path) as conn:
+            cur = conn.cursor()
 
-        # カテゴリ列
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS category_columns (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT UNIQUE NOT NULL
-            )
-        """)
+            # カテゴリ列
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS category_columns (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT UNIQUE NOT NULL
+                )
+            """)
 
-        # アノテーション列
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS annotation_columns (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                column_id TEXT UNIQUE NOT NULL,
-                label TEXT NOT NULL,
-                type TEXT NOT NULL
-            )
-        """)
+            # アノテーション列
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS annotation_columns (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    column_id TEXT UNIQUE NOT NULL,
+                    label TEXT NOT NULL,
+                    type TEXT NOT NULL
+                )
+            """)
 
-        # settings テーブル（key/value）
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS settings (
-                key TEXT PRIMARY KEY,
-                value TEXT NOT NULL
-            )
-        """)
+            # settings テーブル（key/value）
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS settings (
+                    key TEXT PRIMARY KEY,
+                    value TEXT NOT NULL
+                )
+            """)
 
-        conn.commit()
-        conn.close()
+            conn.commit()
 
     def get_format(self) -> str:
         """
         settings テーブルから format を取得して返す。
         存在しなければ INSERT OR IGNORE で既定値を挿入してから取得する（遅延初期化）。
         """
-        conn = None
-        try:
-            conn = sqlite3.connect(self.database_path)
+        with sqlite3.connect(self.database_path) as conn:
             cur = conn.cursor()
 
             # 存在しなければ既定値を挿入する（INSERT OR IGNORE により原子的に存在判定と挿入が行われる）
@@ -261,19 +251,12 @@ class AppState:
             row = cur.fetchone()
             if row and row[0]:
                 return row[0]
-        except Exception:
-            # DB 読み取りに失敗した場合は既定値を返す（DB には何もしない）
-            pass
-        finally:
-            if conn:
-                conn.close()
         return DEFAULT_FORMAT
 
     def set_format(self, fmt: str):
         """DB に format を保存する（キャッシュは持たない）"""
         fmt = fmt or DEFAULT_FORMAT
-        conn = sqlite3.connect(self.database_path)
-        cur = conn.cursor()
-        cur.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", ("format", fmt))
-        conn.commit()
-        conn.close()
+        with sqlite3.connect(self.database_path) as conn:
+            cur = conn.cursor()
+            cur.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", ("format", fmt))
+            conn.commit()
