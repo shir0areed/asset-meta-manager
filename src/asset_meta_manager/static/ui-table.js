@@ -209,11 +209,9 @@ function initTableHeaders() {
 
     // ヘッダ生成
     let headerHtml = `
-        <th class="sortable" data-col="name">名前 <span class="sort-arrow"></span></th>
         <th>サムネイル</th>
     `;
     let filterHtml = `
-        <td><input class="filter-input" data-col="name"></td>
         <td></td>
     `;
 
@@ -273,12 +271,6 @@ function renderRows() {
     // フィルタ処理
     // -----------------------------
     let rows = data.files.filter(item => {
-        // 名前
-        const fvName = filterValues["name"];
-        if (fvName && !item.name.toLowerCase().includes(fvName.toLowerCase())) {
-            return false;
-        }
-
         // カテゴリ
         for (let i = 0; i < data.category_columns.length; i++) {
             const key = `cat_${i}`;
@@ -322,10 +314,7 @@ function renderRows() {
             let va = "";
             let vb = "";
 
-            if (sortColumn === "name") {
-                va = a.name;
-                vb = b.name;
-            } else if (sortColumn.startsWith("cat_")) {
+            if (sortColumn.startsWith("cat_")) {
                 const i = Number(sortColumn.split("_")[1]);
                 va = a.categories[i] || "";
                 vb = b.categories[i] || "";
@@ -369,20 +358,6 @@ function renderRows() {
         const tr = document.createElement("tr");
 
         let html = "";
-
-        // ★ 名前列
-        if (editMode) {
-            html += `
-            <td>
-                <input class="edit-cell"
-                        data-original="${item.name}"
-                        data-path="${item.path}"
-                        data-column="__name__"
-                        value="${item.name}">
-            </td>`;
-        } else {
-            html += `<td>${item.name}</td>`;
-        }
 
         // ★ サムネイル列
         if (editMode) {

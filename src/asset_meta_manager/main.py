@@ -250,11 +250,6 @@ def remove_annotation_column(column_id: str = Form(...)):
     return {"ok": True}
 
 
-@app.post("/meta/update-name")
-def update_name(path: str = Form(...), value: str = Form(...)):
-    return {"ok": False}
-
-
 @app.post("/meta/update-annotation")
 def update_annotation(path: str = Form(...), column_id: str = Form(...), value: str | None = Form("")):
     state = app.state.manager
