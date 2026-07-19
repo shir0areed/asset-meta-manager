@@ -112,15 +112,6 @@ class AppState:
             return
 
     # ============================================================
-    # 名前の更新
-    # ============================================================
-    def update_name(self, rel_path: str, new_name: str):
-        file_path = self.instance_root / rel_path
-        meta = self.load_meta(file_path)
-        meta["name"] = new_name
-        self.save_meta(file_path, meta)
-
-    # ============================================================
     # アノテーションの更新
     # ============================================================
     def update_annotation(self, rel_path: str, column_id: str, value: str):
