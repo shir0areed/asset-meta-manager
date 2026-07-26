@@ -18,13 +18,14 @@ def find_free_port():
 if __name__ == '__main__':
     script_dir = pathlib.Path(__file__).resolve().parent
     venv_dir = script_dir / 'venv'
+    wheel_dir = script_dir / 'wheel'
 
     port = find_free_port()
     server_proc = subprocess.Popen([
         sys.executable,
         "-m", "http.server",
         str(port),
-        "--directory", str(script_dir)
+        "--directory", str(wheel_dir)
     ])
 
     index_url = f"http://localhost:{port}/"
