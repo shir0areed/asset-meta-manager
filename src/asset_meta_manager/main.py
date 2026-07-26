@@ -73,10 +73,10 @@ def list_databases():
     managers = app.state.managers
     current = app.state.manager
 
-    # current の index を求める
+    # current の index を求める（辞書だが UI のため index を返す）
     current_index = None
     if current is not None:
-        for i, m in enumerate(managers):
+        for i, m in enumerate(managers.values()):
             if m is current:
                 current_index = i
                 break
@@ -90,7 +90,7 @@ def list_databases():
                 "instance_root": str(m.instance_root),
                 "format": m.get_format(),
             }
-            for i, m in enumerate(managers)
+            for i, m in enumerate(managers.values())
         ]
     }
 
@@ -101,11 +101,12 @@ def set_database(index: int = Form(...)):
     UI が選択した database を manager に設定する。
     """
     managers = app.state.managers
+    keys = list(managers.keys())
 
-    if index < 0 or index >= len(managers):
+    if index < 0 or index >= len(keys):
         return {"ok": False, "error": "Invalid index"}
 
-    app.state.manager = managers[index]
+    app.state.manager = managers[keys[index]]
     return {"ok": True}
 
 
@@ -384,7 +385,7 @@ def adira_tags_list(vendor_hex: str = "", artifact_hex: str = ""):
 
     tags = []
 
-    for state in managers:
+    for state in managers.values():
         fmt = state.get_format()
         root = state.instance_root
         category_columns = state.load_category_columns()
@@ -422,7 +423,7 @@ def adira_manifest_tag(vendor_hex: str = "", artifact_hex: str = "", tag: str = 
         raise HTTPException(status_code=404, detail="No databases loaded")
 
     # format が一致する manager のみ検索
-    candidates = [m for m in managers if m.get_format() == fmt]
+    candidates = [m for m in managers.values() if m.get_format() == fmt]
 
     if not candidates:
         raise HTTPException(status_code=404, detail=f"No database with format '{fmt}'")
@@ -464,7 +465,7 @@ def adira_blob(vendor_hex: str = "", artifact_hex: str = "", digest: str = ""):
     if not managers:
         raise HTTPException(status_code=404, detail="No databases loaded")
 
-    for state in managers:
+    for state in managers.values():
         root = state.instance_root
         category_columns = state.load_category_columns()
 
@@ -506,14 +507,14 @@ def load_databases_from_toml(toml_path: Path):
     data = tomllib.loads(toml_path.read_text(encoding="utf-8"))
 
     # TOML の仕様:
-    # [[database]]
+    # [databases.<name>]
     # path = "/path/to/db"
-    db_entries = data.get("database", [])
+    db_entries = data.get("databases", {})
 
-    managers = []
-    for entry in db_entries:
+    managers = {}
+    for key, entry in db_entries.items():
         p = Path(entry["path"])
-        managers.append(AppState(database_path=p))
+        managers[key] = AppState(database_path=p)
 
     return managers
 
@@ -533,7 +534,7 @@ def main():
     # database をロード
     managers = load_databases_from_toml(toml_path)
     app.state.managers = managers
-    app.state.manager = managers[0] if managers else None
+    app.state.manager = next(iter(managers.values())) if managers else None
 
     # uvicorn 起動
     uvicorn.run(app, host="127.0.0.1", port=8000, reload=False)

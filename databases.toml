@@ -1,2 +1,2 @@
-#[[database]]
-#path = "path/to/database"
+#[[databases.database1]]
+#path = "path/to/database1"
