@@ -246,6 +246,10 @@ function initTableHeaders() {
         filterHtml += `<td></td>`;
     }
 
+    // ★ ADIRA 列を追加
+    headerHtml += `<th>ADIRA</th>`;
+    filterHtml += `<td></td>`;
+
     headerRow.innerHTML = headerHtml;
     filterRow.innerHTML = filterHtml;
 }
@@ -469,6 +473,13 @@ function renderRows() {
                 }).join("") +
                 `</td>`;
         }
+        
+        // ★ ADIRA 列（version ごとに ADIRA マニフェスト追加ファイルをダウンロード）
+        html += `<td>` +
+            row.items.map(it =>
+                `<div><a href="/adira?path=${encodeURIComponent(it.path)}" download>${it.version}</a></div>`
+            ).join("") +
+            `</td>`;
 
         tr.innerHTML = html;
         tbody.appendChild(tr);
