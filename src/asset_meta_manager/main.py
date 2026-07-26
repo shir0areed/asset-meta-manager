@@ -1,8 +1,9 @@
 import argparse
 from fastapi import FastAPI, Query, Form, HTTPException
-from fastapi.responses import RedirectResponse, FileResponse
+from fastapi.responses import RedirectResponse, FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 import tomllib
+import tomli_w
 from pathlib import Path
 import uvicorn
 from urllib.parse import quote, unquote
@@ -300,6 +301,38 @@ def preview(path: str = Query(..., description="Relative POSIX path from databas
 
     headers = {"Content-Disposition": content_disposition}
     return FileResponse(abs_path, filename=abs_path.name, headers=headers)
+
+
+@app.get("/adira")
+def adira_manifest(path: str = Query(..., description="Relative POSIX path from database root")):
+    """
+    ADIRA マニフェスト追加ファイルを生成して返す。
+    path は相対 POSIX パス（他の API と統一）。
+    """
+    state = app.state.manager
+    if state is None:
+        raise HTTPException(status_code=404, detail="No database selected")
+
+    # ★ rel_path をそのまま渡す（Path への変換は state 側の責務）
+    fragment_dict = state.generate_manifest_fragment(path)
+
+    # TOML に変換
+    toml_text = tomli_w.dumps(fragment_dict)
+
+    # 依存IDを取得
+    dep_id = list(fragment_dict["dependencies"].keys())[0]
+    fname = f"{dep_id}.adira.toml"
+
+    # ★ preview() と同じヘッダ正規化
+    ascii_fname = fname.encode("ascii", "ignore").decode("ascii") or "file"
+    encoded = quote(fname, safe='')
+    content_disposition = (
+        f'attachment; filename="{ascii_fname}"; filename*=UTF-8\'\'{encoded}'
+    )
+
+    headers = {"Content-Disposition": content_disposition}
+
+    return Response(toml_text, media_type="text/plain", headers=headers)
 
 
 @app.get("/formats")
