@@ -38,7 +38,14 @@ async def startup_event():
 
 @app.get("/")
 def root():
-    return RedirectResponse(url="/static/ui.html")
+    managers = app.state.managers
+    if not managers:
+        # DB が 0 個ならそのまま UI に飛ばす
+        return RedirectResponse(url="/static/ui.html?db=\"\"")
+
+    # ★ 最初の DB を自動付与
+    first = next(iter(managers.keys()))
+    return RedirectResponse(url=f"/static/ui.html?db={first}")
 
 
 @app.get("/instance-info")
