@@ -262,3 +262,46 @@ def get_supported_formats() -> List[str]:
 def get_default_version() -> str:
     """デフォルトバージョンを返す"""
     return DEFAULT_VERSION
+
+def compute_fixed_categories(rel: Path, user_cat_count: int) -> dict:
+    """
+    rel: Path オブジェクト（例: Path("foo/bar/buzz/hoge/piyo.zip")）
+    user_cat_count: category_columns の数（ユーザー定義カテゴリ列数）
+
+    戻り値: dict with keys 'vendor','artifact','version'
+    """
+    parts = rel.parts  # ('foo','bar','buzz','hoge','piyo.zip')
+
+    name_without_ext = rel.stem
+    folder_parts = parts[:-1]  # フォルダ部分
+
+    # remaining はユーザー定義カテゴリを除いた残り
+    remaining = folder_parts[user_cat_count:] if user_cat_count < len(folder_parts) else []
+    r = len(remaining)
+
+    vendor = ""
+    artifact = ""
+    version = None
+
+    if r >= 4:
+        vendor = remaining[r - 3]
+        artifact = remaining[r - 2]
+        version = remaining[r - 1]
+    elif r == 3:
+        vendor = remaining[0]
+        artifact = remaining[1]
+        version = remaining[2]
+    elif r == 2:
+        vendor = remaining[0]
+        artifact = remaining[1]
+        version = get_default_version()
+    elif r == 1:
+        vendor = remaining[0]
+        artifact = name_without_ext
+        version = get_default_version()
+    else:  # r == 0
+        vendor = ""
+        artifact = name_without_ext
+        version = get_default_version()
+
+    return {"vendor": vendor, "artifact": artifact, "version": version}

@@ -7,7 +7,11 @@ from pathlib import Path
 import uvicorn
 from urllib.parse import quote, unquote
 
-from .core.state import AppState, get_supported_formats, get_default_version
+from .core.state import (
+    AppState,
+    get_supported_formats,
+    compute_fixed_categories,
+) 
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -153,7 +157,7 @@ def scan_result():
         ]
 
         # --- 追加: 固定カテゴリを計算（ユーザー定義カテゴリ数を渡す） ---
-        fixed = _compute_fixed_categories_from_rel_with_usercats(rel, len(category_columns))
+        fixed = compute_fixed_categories(rel, len(category_columns))
         vendor = fixed["vendor"]
         artifact = fixed["artifact"]
         version = fixed["version"]
@@ -343,53 +347,6 @@ def _resolve_path_from_rel(root: Path, rel_posix: str) -> Path:
         raise HTTPException(status_code=404, detail="Not found")
 
     return abs_path
-
-
-# --- 追加ユーティリティ: パス分解（カテゴリ列を考慮した固定カテゴリ割当） ---
-def _compute_fixed_categories_from_rel_with_usercats(rel: Path, user_cat_count: int):
-    """
-    rel: 'foo/bar/buzz/hoge/piyo.zip' のような Path オブジェクト
-    user_cat_count: category_columns の数（ユーザー定義カテゴリ列数）
-    戻り値: dict with keys 'vendor','artifact','version'
-    割当ルール: remaining の長さで左寄せ/右寄せを切り替える（詳細は既存仕様）
-    """
-    parts = rel.parts  # ('foo', 'bar', 'buzz', 'hoge', 'piyo.zip')
-
-    name_without_ext = rel.stem
-
-    folder_parts = parts[:-1]  # フォルダ部分
-    # remaining はユーザー定義カテゴリを除いた残り
-    remaining = folder_parts[user_cat_count:] if user_cat_count < len(folder_parts) else []
-    r = len(remaining)
-
-    vendor = ""
-    artifact = ""
-    version = None  # デフォルトは None にして最後に一度だけフォールバック
-
-    if r >= 4:
-        # 右寄せ: last 3 を vendor/artifact/version に割当
-        vendor = remaining[r - 3]
-        artifact = remaining[r - 2]
-        version = remaining[r - 1]
-    elif r == 3:
-        # 左寄せ: 先頭->vendor, 次->artifact, 次->version
-        vendor = remaining[0]
-        artifact = remaining[1]
-        version = remaining[2]
-    elif r == 2:
-        vendor = remaining[0]
-        artifact = remaining[1]
-        version = get_default_version()
-    elif r == 1:
-        vendor = remaining[0]
-        artifact = name_without_ext
-        version = get_default_version()
-    else:  # r == 0
-        vendor = ""
-        artifact = name_without_ext
-        version = get_default_version()
-
-    return {"vendor": vendor, "artifact": artifact, "version": version}
 
 
 def load_databases_from_toml(toml_path: Path):
