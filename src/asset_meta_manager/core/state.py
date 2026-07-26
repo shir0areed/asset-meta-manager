@@ -254,6 +254,39 @@ class AppState:
             cur.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", ("format", fmt))
             conn.commit()
         return True
+    
+    # ============================================================
+    # ADIRA: マニフェスト追加ファイル生成
+    # ============================================================
+    def generate_manifest_fragment(self, rel_path: str) -> dict:
+        # rel_path を Path に変換
+        rel = Path(rel_path)
+
+        # vendor / artifact / version は固定カテゴリから取得
+        user_cat_count = len(self.load_category_columns())
+        fixed = compute_fixed_categories(rel, user_cat_count)
+
+        vendor = fixed["vendor"]
+        artifact = fixed["artifact"]
+        version = fixed["version"]
+
+        # format は現在の database に設定されているもの
+        fmt = self.get_format()
+
+        # 依存IDは vendor-artifact（正規化なし）
+        dep_id = f"{vendor}-{artifact}" if vendor else artifact
+
+        # TOML-ready dict を構築
+        return {
+            "dependencies": {
+                dep_id: {
+                    "vendor": vendor,
+                    "artifact": artifact,
+                    "version": version,
+                    "format": fmt,
+                }
+            }
+        }
 
 def get_supported_formats() -> List[str]:
     """サポートしているフォーマット一覧を返す（順序は重要、デフォルトは先頭要素）。"""
