@@ -24,16 +24,16 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
+def _get_app_state(db: str) -> AppState | None:
+    return app.state.managers[db] if db in app.state.managers else None
+
+
 @app.on_event("startup")
 async def startup_event():
-    state = app.state.manager
-    if state is None:
-        print("No database loaded.")
-        return
-
-    print("Scanned files:")
-    for f in state.files:
-        print(" -", f)
+    # state.manager は廃止したので、代わりに一覧を表示
+    print("Databases loaded:")
+    for key, m in app.state.managers.items():
+        print(f" - {key}: {m.database_path}")
 
 
 @app.get("/")
@@ -42,12 +42,12 @@ def root():
 
 
 @app.get("/instance-info")
-def instance_info():
+def instance_info(db: str = Query(...)):
     """
     STEP1 の動作確認用エンドポイント。
     UI 実装前でもブラウザで確認できる。
     """
-    state = app.state.manager
+    state = _get_app_state(db)
     if state is None:
         return {
             "database": None,
@@ -71,52 +71,27 @@ def list_databases():
     database が 0 個でも空リストを返す。
     """
     managers = app.state.managers
-    current = app.state.manager
-
-    # current の index を求める（辞書だが UI のため index を返す）
-    current_index = None
-    if current is not None:
-        for i, m in enumerate(managers.values()):
-            if m is current:
-                current_index = i
-                break
 
     return {
-        "current": current_index,
         "databases": [
             {
-                "index": i,
+                "key": key,
                 "database_path": str(m.database_path),
                 "instance_root": str(m.instance_root),
                 "format": m.get_format(),
             }
-            for i, m in enumerate(managers.values())
+            for key, m in managers.items()
         ]
     }
 
 
-@app.post("/set-database")
-def set_database(index: int = Form(...)):
-    """
-    UI が選択した database を manager に設定する。
-    """
-    managers = app.state.managers
-    keys = list(managers.keys())
-
-    if index < 0 or index >= len(keys):
-        return {"ok": False, "error": "Invalid index"}
-
-    app.state.manager = managers[keys[index]]
-    return {"ok": True}
-
-
 @app.get("/scan-result")
-def scan_result():
+def scan_result(db: str = Query(...)):
     """
     STEP2 の動作確認用エンドポイント。
     スキャンされたファイル一覧を返す。
     """
-    state = app.state.manager
+    state = _get_app_state(db)
     if state is None:
         return {
             "category_columns": [],
@@ -185,13 +160,13 @@ def scan_result():
 
 
 @app.get("/file")
-def download_file(path: str = Query(..., description="Relative POSIX path from database root")):
+def download_file(db: str = Query(...), path: str = Query(..., description="Relative POSIX path from database root")):
     """
     STEP4: ファイルダウンロード用エンドポイント。
     path は相対 POSIX パスで渡す。
     既存のダウンロード挙動はそのまま維持する（Content-Disposition は attachment 相当）。
     """
-    state = app.state.manager
+    state = _get_app_state(db)
     if state is None:
         return FileResponse(None)  # 実際には UI 側で呼ばれない
 
@@ -202,16 +177,16 @@ def download_file(path: str = Query(..., description="Relative POSIX path from d
 
 
 @app.get("/category_columns")
-def get_category_columns():
-    state = app.state.manager
+def get_category_columns(db: str = Query(...)):
+    state = _get_app_state(db)
     if state is None:
         return {"category_columns": []}
     return {"category_columns": state.load_category_columns()}
 
 
 @app.post("/category_columns/add")
-def add_category_columns(name: str = Form(...)):
-    state = app.state.manager
+def add_category_columns(db: str = Form(...), name: str = Form(...)):
+    state = _get_app_state(db)
     if state is None:
         return {"ok": False}
     state.add_category_columns(name)
@@ -219,8 +194,8 @@ def add_category_columns(name: str = Form(...)):
 
 
 @app.post("/category_columns/remove")
-def remove_category_columns(name: str = Form(...)):
-    state = app.state.manager
+def remove_category_columns(db: str = Form(...), name: str = Form(...)):
+    state = _get_app_state(db)
     if state is None:
         return {"ok": False}  # 実際には UI 側で呼ばれない
     state.remove_category_columns(name)
@@ -228,16 +203,16 @@ def remove_category_columns(name: str = Form(...)):
 
 
 @app.get("/annotation_columns")
-def get_annotation_columns():
-    state = app.state.manager
+def get_annotation_columns(db: str = Query(...)):
+    state = _get_app_state(db)
     if state is None:
         return {"annotation_columns": []}
     return {"annotation_columns": state.load_annotation_columns()}
 
 
 @app.post("/annotation_columns/add")
-def add_annotation_column(column_id: str = Form(...), label: str = Form(...), type: str = Form(...)):
-    state = app.state.manager
+def add_annotation_column(db: str = Form(...), column_id: str = Form(...), label: str = Form(...), type: str = Form(...)):
+    state = _get_app_state(db)
     if state is None:
         return {"ok": False}
     ok = state.add_annotation_column(column_id, label, type)
@@ -245,8 +220,8 @@ def add_annotation_column(column_id: str = Form(...), label: str = Form(...), ty
 
 
 @app.post("/annotation_columns/remove")
-def remove_annotation_column(column_id: str = Form(...)):
-    state = app.state.manager
+def remove_annotation_column(db: str = Form(...), column_id: str = Form(...)):
+    state = _get_app_state(db)
     if state is None:
         return {"ok": False}  # 実際には UI 側で呼ばれない
     state.remove_annotation_column(column_id)
@@ -254,8 +229,8 @@ def remove_annotation_column(column_id: str = Form(...)):
 
 
 @app.post("/meta/update-annotation")
-def update_annotation(path: str = Form(...), column_id: str = Form(...), value: str | None = Form("")):
-    state = app.state.manager
+def update_annotation(db: str = Form(...), path: str = Form(...), column_id: str = Form(...), value: str | None = Form("")):
+    state = _get_app_state(db)
     if state is None:
         return {"ok": False}  # 実際には UI 側で呼ばれない
     state.update_annotation(path, column_id, value or "")
@@ -263,8 +238,8 @@ def update_annotation(path: str = Form(...), column_id: str = Form(...), value: 
 
 
 @app.post("/meta/update-thumbnail")
-def update_thumbnail(path: str = Form(...), value: str = Form(...)):
-    state = app.state.manager
+def update_thumbnail(db: str = Form(...), path: str = Form(...), value: str = Form(...)):
+    state = _get_app_state(db)
     if state is None:
         return {"ok": False}  # 実際には UI 側で呼ばれない
     state.update_thumbnail(path, value)
@@ -272,8 +247,8 @@ def update_thumbnail(path: str = Form(...), value: str = Form(...)):
 
 
 @app.post("/meta/delete-thumbnail")
-def delete_thumbnail(path: str = Form(...)):
-    state = app.state.manager
+def delete_thumbnail(db: str = Form(...), path: str = Form(...)):
+    state = _get_app_state(db)
     if state is None:
         return {"ok": False}  # 実際には UI 側で呼ばれない
     state.update_thumbnail(path, None)
@@ -281,13 +256,13 @@ def delete_thumbnail(path: str = Form(...)):
 
 
 @app.get("/preview")
-def preview(path: str = Query(..., description="Relative POSIX path from database root")):
+def preview(db: str = Query(...), path: str = Query(..., description="Relative POSIX path from database root")):
     """
     プレビュー用エンドポイント（最小実装）。
     download_file と重複しないよう、ファイル解決は共通ヘルパーを使う。
     返却時に Content-Disposition を inline にしてブラウザで開かせる。
     """
-    state = app.state.manager
+    state = _get_app_state(db)
     if state is None:
         raise HTTPException(status_code=404, detail="No database selected")
 
@@ -306,12 +281,12 @@ def preview(path: str = Query(..., description="Relative POSIX path from databas
 
 
 @app.get("/adira")
-def adira_manifest(path: str = Query(..., description="Relative POSIX path from database root")):
+def adira_manifest(db: str = Query(...), path: str = Query(..., description="Relative POSIX path from database root")):
     """
     ADIRA マニフェスト追加ファイルを生成して返す。
     path は相対 POSIX パス（他の API と統一）。
     """
-    state = app.state.manager
+    state = _get_app_state(db)
     if state is None:
         raise HTTPException(status_code=404, detail="No database selected")
 
@@ -346,12 +321,12 @@ def get_formats():
 
 
 @app.post("/set-format")
-def set_format(fmt: str = Form(...)):
+def set_format(db: str = Form(...), fmt: str = Form(...)):
     """
     選択されたフォーマットを現在選択中の database に適用する。
     フォーマットがサポート外の場合はエラーを返す。
     """
-    state = app.state.manager
+    state = _get_app_state(db)
     if state is None:
         return {"ok": False, "error": "No database selected"}
 

@@ -89,12 +89,15 @@ function bindTableRowHandlers() {
     const tbody = document.getElementById("file-table");
     if (!tbody) return;
 
+    const params = new URLSearchParams(location.search);
+    const db = params.get("db");
+
     tbody.addEventListener("keydown", event => {
         const input = event.target;
         if (!input.matches(".edit-cell")) return;
 
         if (event.key === "Enter") {
-            saveValue(input.dataset.path, input.dataset.column, input.value);
+            saveValue(db, input.dataset.path, input.dataset.column, input.value);
             input.dataset.original = input.value;
             input.blur();
         }
@@ -114,7 +117,7 @@ function bindTableRowHandlers() {
 
         const ok = confirm("変更を保存しますか？");
         if (ok) {
-            saveValue(input.dataset.path, input.dataset.column, newValue);
+            saveValue(db, input.dataset.path, input.dataset.column, newValue);
             input.dataset.original = input.value;
         } else {
             input.value = input.dataset.original;
@@ -127,9 +130,9 @@ function bindTableRowHandlers() {
             const path = deleteBtn.dataset.path;
             await fetch("/meta/delete-thumbnail", {
                 method: "POST",
-                body: new URLSearchParams({ path })
+                body: new URLSearchParams({ db, path })
             });
-            load();
+            load(db);
             return;
         }
 
@@ -144,7 +147,7 @@ function bindTableRowHandlers() {
 
                 const reader = new FileReader();
                 reader.onload = () => {
-                    saveThumbnail(thumbImg.dataset.path, reader.result);
+                    saveThumbnail(db, thumbImg.dataset.path, reader.result);
                 };
                 reader.readAsDataURL(file);
             };
@@ -171,7 +174,7 @@ function bindTableRowHandlers() {
                         const blob = await item.getType(type);
                         const reader = new FileReader();
                         reader.onload = () => {
-                            saveThumbnail(thumbImg.dataset.path, reader.result);
+                            saveThumbnail(db, thumbImg.dataset.path, reader.result);
                         };
                         reader.readAsDataURL(blob);
                         return;
@@ -185,9 +188,9 @@ function bindTableRowHandlers() {
     });
 }
 
-async function load() {
+async function load(db) {
     loadingOverlay.style.display = "flex";
-    const res = await fetch("/scan-result");
+    const res = await fetch(`/scan-result?db=${db}`);
     cachedData = await res.json();
 
     const count = document.getElementById("count");
@@ -435,13 +438,16 @@ function renderRows() {
             }).join("");
         }
 
+        const params = new URLSearchParams(location.search);
+        const db = params.get("db");
+
         // -----------------------------
         // ★ version を縦に並べる（Download または Preview）
         // -----------------------------
         if (data.format === "zip") {
             html += `<td>` +
                 row.items.map(it =>
-                    `<div><a href="/file?path=${encodeURIComponent(it.path)}" download>${it.version}</a></div>`
+                    `<div><a href="/file?db=${db}&path=${encodeURIComponent(it.path)}" download>${it.version}</a></div>`
                 ).join("") +
                 `</td>`;
         } else if (data.format === "raw") {
@@ -455,7 +461,7 @@ function renderRows() {
                         return `
                         <div style="margin-bottom:8px;">
                             <audio class="preview-media" controls preload="none" style="width:220px;">
-                                <source src="/preview?path=${encodeURIComponent(it.path)}" />
+                                <source src="/preview?db=${db}&path=${encodeURIComponent(it.path)}" />
                             </audio>
                             <div style="font-size:12px;opacity:0.7;">${it.version}</div>
                         </div>`;
@@ -463,21 +469,21 @@ function renderRows() {
                         return `
                         <div style="margin-bottom:8px;">
                             <video class="preview-media" controls preload="none" style="width:320px; max-width:100%;">
-                                <source src="/preview?path=${encodeURIComponent(it.path)}" />
+                                <source src="/preview?db=${db}&path=${encodeURIComponent(it.path)}" />
                             </video>
                             <div style="font-size:12px;opacity:0.7;">${it.version}</div>
                         </div>`;
                     } else {
-                        return `<div><a href="/preview?path=${encodeURIComponent(it.path)}" target="_blank">${it.version}</a></div>`;
+                        return `<div><a href="/preview?db=${db}&path=${encodeURIComponent(it.path)}" target="_blank">${it.version}</a></div>`;
                     }
                 }).join("") +
                 `</td>`;
         }
-        
+
         // ★ ADIRA 列（version ごとに ADIRA マニフェスト追加ファイルをダウンロード）
         html += `<td>` +
             row.items.map(it =>
-                `<div><a href="/adira?path=${encodeURIComponent(it.path)}" download>${it.version}</a></div>`
+                `<div><a href="/adira?db=${db}&path=${encodeURIComponent(it.path)}" download>${it.version}</a></div>`
             ).join("") +
             `</td>`;
 
@@ -499,28 +505,28 @@ function renderRows() {
     });
 }
 
-async function saveValue(path, column, value) {
+async function saveValue(db, path, column, value) {
     if (column === "__name__") {
         await fetch("/meta/update-name", {
             method: "POST",
-            body: new URLSearchParams({ path, value })
+            body: new URLSearchParams({ db, path, value })
         });
     } else {
         await fetch("/meta/update-annotation", {
             method: "POST",
-            body: new URLSearchParams({ path, column_id: column, value })
+            body: new URLSearchParams({ db, path, column_id: column, value })
         });
     }
 
-    load();
+    load(db);
 }
 
-async function saveThumbnail(path, base64) {
+async function saveThumbnail(db, path, base64) {
     await fetch("/meta/update-thumbnail", {
         method: "POST",
-        body: new URLSearchParams({ path, value: base64 })
+        body: new URLSearchParams({ db, path, value: base64 })
     });
-    load();
+    load(db);
 }
 
 function initTableInteractions() {
@@ -535,4 +541,10 @@ spacer.style.height = sidebar.offsetHeight + "px";
 document.body.appendChild(spacer);
 
 initTableInteractions();
-load();
+
+// ★ 初期ロード時にも db を付ける
+{
+    const params = new URLSearchParams(location.search);
+    const db = params.get("db");
+    if (db) load(db);
+}

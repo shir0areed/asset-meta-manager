@@ -7,7 +7,11 @@ const editToggleBtn = document.getElementById("edit-toggle-checkbox");
 
 editToggleBtn.onchange = () => {
     editMode = editToggleBtn.checked;
-    load(); // 再描画
+
+    const params = new URLSearchParams(location.search);
+    const db = params.get("db");
+
+    load(db); // 再描画
 };
 
 /* ------------------------------
@@ -58,9 +62,11 @@ async function populateFormatSelect() {
         const formats = Array.isArray(formatsJson.formats) ? formatsJson.formats : [];
 
         // 現在のデータベース設定を軽量に取得（/instance-info を利用）
+        const params = new URLSearchParams(location.search);
+        const db = params.get("db");
         let currentFormat = null;
         try {
-            const resInfo = await fetch("/instance-info");
+            const resInfo = await fetch(`/instance-info?db=${db}`);
             if (resInfo.ok) {
                 const info = await resInfo.json();
                 currentFormat = info.format || null;
@@ -111,7 +117,9 @@ formatApplyBtn.addEventListener("click", async () => {
 
     try {
         // 軽量チェック: データベースが選択されているか確認
-        const infoRes = await fetch("/instance-info");
+        const params = new URLSearchParams(location.search);
+        const db = params.get("db");
+        const infoRes = await fetch(`/instance-info?db=${db}`);
         if (!infoRes.ok) throw new Error("failed to fetch instance-info");
         const info = await infoRes.json();
         if (!info.database) {
@@ -121,6 +129,7 @@ formatApplyBtn.addEventListener("click", async () => {
         }
 
         const form = new FormData();
+        form.append("db", db);   // ★ 追加
         form.append("fmt", fmt);
 
         const res = await fetch("/set-format", {
@@ -138,7 +147,7 @@ formatApplyBtn.addEventListener("click", async () => {
         } else {
             // 成功: UI を更新（ファイル一覧等を再描画）
             if (typeof load === "function") {
-                load();
+                load(db);   // ★ key を渡す
             }
         }
     } catch (err) {

@@ -30,10 +30,13 @@ async function loadDatabaseList() {
     const data = await res.json();
 
     const list = data.databases || [];
-    const current = data.current;   // ★ 現在選択中の index
+
+    // URL の db=key を現在選択中として扱う
+    const params = new URLSearchParams(location.search);
+    const current = params.get("db");
 
     // セレクタをクリア
-databaseSelector.innerHTML = "";
+    databaseSelector.innerHTML = "";
 
     if (list.length === 0) {
         // database が 0 個の場合
@@ -50,11 +53,11 @@ databaseSelector.innerHTML = "";
     // database をセレクタに追加
     list.forEach(item => {
         const opt = document.createElement("option");
-        opt.value = item.index;
+        opt.value = item.key;
         opt.textContent = item.database_path;
 
         // ★ 現在選択中の database をデフォルト選択
-        if (item.index === current) {
+        if (item.key === current) {
             opt.selected = true;
         }
 
@@ -66,33 +69,23 @@ databaseSelector.innerHTML = "";
 // database を適用
 // -----------------------------
 databaseApplyBtn.addEventListener("click", async () => {
-    const index = databaseSelector.value;
+    const key = databaseSelector.value;
 
-    if (index === "") {
+    if (key === "") {
         return; // database がない場合
     }
 
-    const fd = new FormData();
-    fd.append("index", index);
-
-    const res = await fetch("/set-database", {
-        method: "POST",
-        body: fd
-    });
-
-    const data = await res.json();
-    if (!data.ok) {
-        alert("database の切り替えに失敗しました");
-        return;
-    }
+    // ★ ステートレス化により /set-database は不要
+    //   URL の db=key を更新するだけでよい
+    history.replaceState(null, "", `?db=${key}`);
 
     // モーダルを閉じる
     databaseModal.style.display = "none";
 
     // テーブル再読み込み
-    loadCategoryColumns()
-    loadAnnotationColumns()
-    load();
+    loadCategoryColumns(key);
+    loadAnnotationColumns(key);
+    load(key);
 });
 
 async function updateDatabaseDisplay() {
@@ -100,14 +93,16 @@ async function updateDatabaseDisplay() {
 
     const res = await fetch("/databases");
     const data = await res.json();
-
+    
     const list = data.databases || [];
-    const current = data.current;
+    const params = new URLSearchParams(location.search);
+    const current = params.get("db");
 
-    if (current == null || list.length === 0) {
+    const found = list.find(x => x.key === current);
+    if (current == null || !found) {
         span.textContent = "(databaseなし)";
         return;
     }
 
-    span.textContent = list[current].database_path;
+    span.textContent = found.database_path;
 }
