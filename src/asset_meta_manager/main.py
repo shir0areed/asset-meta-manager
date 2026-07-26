@@ -4,6 +4,7 @@ from fastapi.responses import RedirectResponse, FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 import tomllib
 import tomli_w
+import hashlib
 from pathlib import Path
 import uvicorn
 from urllib.parse import quote, unquote
@@ -362,6 +363,122 @@ def set_format(fmt: str = Form(...)):
             "supported": get_supported_formats()
         }
     return {"ok": True, "format": state.get_format()}
+
+
+def _decode_hex(s: str) -> str:
+    try:
+        return bytes.fromhex(s).decode("utf-8")
+    except Exception:
+        raise HTTPException(status_code=400, detail=f"Invalid hex string: {s}")
+
+
+@app.get("/adira/v2/{artifact_hex}/tags/list")
+@app.get("/adira/v2/{vendor_hex}/{artifact_hex}/tags/list")
+def adira_tags_list(vendor_hex: str = "", artifact_hex: str = ""):
+    vendor = _decode_hex(vendor_hex) if vendor_hex else ""
+    artifact = _decode_hex(artifact_hex)
+
+    managers = app.state.managers
+    if not managers:
+        raise HTTPException(status_code=404, detail="No databases loaded")
+
+    tags = []
+
+    for state in managers:
+        fmt = state.get_format()
+        root = state.instance_root
+        category_columns = state.load_category_columns()
+
+        for p in state.files:
+            rel = p.relative_to(root)
+            fixed = compute_fixed_categories(rel, len(category_columns))
+
+            # vendor="" のときは空文字列と比較する（フォールバックしない）
+            if fixed["vendor"] == vendor and fixed["artifact"] == artifact:
+                version = fixed["version"]
+                tag = f"{version}-{fmt}"
+                tags.append(tag)
+
+    return {
+        "name": artifact_hex if vendor_hex == "" else f"{vendor_hex}/{artifact_hex}",
+        "tags": sorted(set(tags)),
+    }
+
+
+@app.get("/adira/v2/{artifact}/manifests/{tag}")
+@app.get("/adira/v2/{vendor_hex}/{artifact_hex}/manifests/{tag}")
+def adira_manifest_tag(vendor_hex: str = "", artifact_hex: str = "", tag: str = ""):
+    vendor = _decode_hex(vendor_hex)
+    artifact = _decode_hex(artifact_hex)
+
+    # tag = version-format を分解する（最も右側のハイフン）
+    try:
+        version, fmt = tag.rsplit("-", 1)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid tag format")
+
+    managers = app.state.managers
+    if not managers:
+        raise HTTPException(status_code=404, detail="No databases loaded")
+
+    # format が一致する manager のみ検索
+    candidates = [m for m in managers if m.get_format() == fmt]
+
+    if not candidates:
+        raise HTTPException(status_code=404, detail=f"No database with format '{fmt}'")
+
+    for state in candidates:
+        root = state.instance_root
+        category_columns = state.load_category_columns()
+
+        for p in state.files:
+            rel = p.relative_to(root)
+            fixed = compute_fixed_categories(rel, len(category_columns))
+
+            if fixed["vendor"] == vendor and fixed["artifact"] == artifact and fixed["version"] == version:
+                file_bytes = p.read_bytes()
+                digest = "sha256:" + hashlib.sha256(file_bytes).hexdigest()
+
+                return {
+                    "schemaVersion": 2,
+                    "mediaType": "application/vnd.adira.manifest.v1+json",
+                    "layers": [
+                        {
+                            "mediaType": "application/octet-stream",
+                            "digest": digest,
+                            "size": len(file_bytes),
+                        }
+                    ]
+                }
+
+    raise HTTPException(status_code=404, detail="Not found")
+
+
+@app.get("/adira/v2/{artifact}/blobs/{digest}")
+@app.get("/adira/v2/{vendor_hex}/{artifact_hex}/blobs/{digest}")
+def adira_blob(vendor_hex: str = "", artifact_hex: str = "", digest: str = ""):
+    vendor = _decode_hex(vendor_hex)
+    artifact = _decode_hex(artifact_hex)
+
+    managers = app.state.managers
+    if not managers:
+        raise HTTPException(status_code=404, detail="No databases loaded")
+
+    for state in managers:
+        root = state.instance_root
+        category_columns = state.load_category_columns()
+
+        for p in state.files:
+            rel = p.relative_to(root)
+            fixed = compute_fixed_categories(rel, len(category_columns))
+
+            file_bytes = p.read_bytes()
+            file_digest = "sha256:" + hashlib.sha256(file_bytes).hexdigest()
+
+            if fixed["vendor"] == vendor and fixed["artifact"] == artifact and file_digest == digest:
+                return FileResponse(p, filename=p.name)
+
+    raise HTTPException(status_code=404, detail="Not found")
 
 
 def _resolve_path_from_rel(root: Path, rel_posix: str) -> Path:
