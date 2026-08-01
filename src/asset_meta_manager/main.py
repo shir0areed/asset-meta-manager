@@ -368,7 +368,6 @@ def adira_tags_list(vendor_hex: str = "", artifact_hex: str = ""):
     tags = []
 
     for state in managers.values():
-        fmt = state.get_format()
         root = state.instance_root
         category_columns = state.load_category_columns()
 
@@ -379,8 +378,7 @@ def adira_tags_list(vendor_hex: str = "", artifact_hex: str = ""):
             # vendor="" のときは空文字列と比較する（フォールバックしない）
             if fixed["vendor"] == vendor and fixed["artifact"] == artifact:
                 version = fixed["version"]
-                tag = f"{version}-{fmt}"
-                tags.append(tag)
+                tags.append(version)
 
     return {
         "name": artifact_hex if vendor_hex == "" else f"{vendor_hex}/{artifact_hex}",
@@ -394,21 +392,13 @@ def adira_manifest_tag(vendor_hex: str = "", artifact_hex: str = "", tag: str = 
     vendor = _decode_hex(vendor_hex)
     artifact = _decode_hex(artifact_hex)
 
-    # tag = version-format を分解する（最も右側のハイフン）
-    try:
-        version, fmt = tag.rsplit("-", 1)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid tag format")
+    version = tag
 
     managers = app.state.managers
     if not managers:
         raise HTTPException(status_code=404, detail="No databases loaded")
 
-    # format が一致する manager のみ検索
-    candidates = [m for m in managers.values() if m.get_format() == fmt]
-
-    if not candidates:
-        raise HTTPException(status_code=404, detail=f"No database with format '{fmt}'")
+    candidates = managers.values()
 
     for state in candidates:
         root = state.instance_root
@@ -422,14 +412,23 @@ def adira_manifest_tag(vendor_hex: str = "", artifact_hex: str = "", tag: str = 
                 file_bytes = p.read_bytes()
                 digest = "sha256:" + hashlib.sha256(file_bytes).hexdigest()
 
+                # ★ OCI 的に正しいファイル名の入れ方
+                annotations = {
+                    "org.opencontainers.image.title": p.name
+                }
+
                 return {
                     "schemaVersion": 2,
-                    "mediaType": "application/vnd.adira.manifest.v1+json",
+                    "mediaType": "application/vnd.oci.image.manifest.v1+json",
+                    "annotations": annotations,
                     "layers": [
                         {
                             "mediaType": "application/octet-stream",
                             "digest": digest,
                             "size": len(file_bytes),
+                            "annotations": {
+                                "org.opencontainers.image.title": p.name
+                            }
                         }
                     ]
                 }
