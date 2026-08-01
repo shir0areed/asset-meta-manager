@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List
+from typing import Dict, List, Tuple
 import json
 import sqlite3
 
@@ -22,6 +22,7 @@ class AppState:
         self.instance_root: Path
         self.sibling_folders: List[Path] = []
         self.files: List[Path] = []
+        self.adira_index: Dict[Tuple[str, str], Dict[str, Path]] = {}
 
         self._load_database(database_path)
         self._scan_files()
@@ -182,6 +183,22 @@ class AppState:
                     result.append(path)
 
         self.files = result
+
+        category_columns = self.load_category_columns()
+        user_cat_count = len(category_columns)
+
+        for file_path in self.files:
+            rel = file_path.relative_to(self.instance_root)
+            fixed = compute_fixed_categories(rel, user_cat_count)
+
+            # _scan_files の最後
+            key = (fixed["vendor"], fixed["artifact"])
+            version = fixed["version"]
+
+            if key not in self.adira_index:
+                self.adira_index[key] = {}
+
+            self.adira_index[key][version] = file_path
 
     def _ensure_meta_files(self) -> None:
         """

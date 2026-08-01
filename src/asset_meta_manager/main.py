@@ -365,24 +365,16 @@ def adira_tags_list(vendor_hex: str = "", artifact_hex: str = ""):
     if not managers:
         raise HTTPException(status_code=404, detail="No databases loaded")
 
-    tags = []
+    tags = set()
 
     for state in managers.values():
-        root = state.instance_root
-        category_columns = state.load_category_columns()
-
-        for p in state.files:
-            rel = p.relative_to(root)
-            fixed = compute_fixed_categories(rel, len(category_columns))
-
-            # vendor="" のときは空文字列と比較する（フォールバックしない）
-            if fixed["vendor"] == vendor and fixed["artifact"] == artifact:
-                version = fixed["version"]
-                tags.append(version)
+        key = (vendor, artifact)
+        if key in state.adira_index:
+            tags.update(state.adira_index[key].keys())
 
     return {
         "name": artifact_hex if vendor_hex == "" else f"{vendor_hex}/{artifact_hex}",
-        "tags": sorted(set(tags)),
+        "tags": sorted(tags),
     }
 
 
@@ -391,47 +383,38 @@ def adira_tags_list(vendor_hex: str = "", artifact_hex: str = ""):
 def adira_manifest_tag(vendor_hex: str = "", artifact_hex: str = "", tag: str = ""):
     vendor = _decode_hex(vendor_hex)
     artifact = _decode_hex(artifact_hex)
-
+    
     version = tag
 
     managers = app.state.managers
     if not managers:
         raise HTTPException(status_code=404, detail="No databases loaded")
 
-    candidates = managers.values()
+    for state in managers.values():
+        key = (vendor, artifact)
+        if key in state.adira_index and version in state.adira_index[key]:
+            p = state.adira_index[key][version]
 
-    for state in candidates:
-        root = state.instance_root
-        category_columns = state.load_category_columns()
+            file_bytes = p.read_bytes()
+            digest = "sha256:" + hashlib.sha256(file_bytes).hexdigest()
 
-        for p in state.files:
-            rel = p.relative_to(root)
-            fixed = compute_fixed_categories(rel, len(category_columns))
-
-            if fixed["vendor"] == vendor and fixed["artifact"] == artifact and fixed["version"] == version:
-                file_bytes = p.read_bytes()
-                digest = "sha256:" + hashlib.sha256(file_bytes).hexdigest()
-
-                # ★ OCI 的に正しいファイル名の入れ方
-                annotations = {
+            return {
+                "schemaVersion": 2,
+                "mediaType": "application/vnd.oci.image.manifest.v1+json",
+                "annotations": {
                     "org.opencontainers.image.title": p.name
-                }
-
-                return {
-                    "schemaVersion": 2,
-                    "mediaType": "application/vnd.oci.image.manifest.v1+json",
-                    "annotations": annotations,
-                    "layers": [
-                        {
-                            "mediaType": "application/octet-stream",
-                            "digest": digest,
-                            "size": len(file_bytes),
-                            "annotations": {
-                                "org.opencontainers.image.title": p.name
-                            }
+                },
+                "layers": [
+                    {
+                        "mediaType": "application/octet-stream",
+                        "digest": digest,
+                        "size": len(file_bytes),
+                        "annotations": {
+                            "org.opencontainers.image.title": p.name
                         }
-                    ]
-                }
+                    }
+                ]
+            }
 
     raise HTTPException(status_code=404, detail="Not found")
 
@@ -447,17 +430,16 @@ def adira_blob(vendor_hex: str = "", artifact_hex: str = "", digest: str = ""):
         raise HTTPException(status_code=404, detail="No databases loaded")
 
     for state in managers.values():
-        root = state.instance_root
-        category_columns = state.load_category_columns()
+        key = (vendor, artifact)
+        if key not in state.adira_index:
+            continue
 
-        for p in state.files:
-            rel = p.relative_to(root)
-            fixed = compute_fixed_categories(rel, len(category_columns))
-
+        # version を走査するだけ（通常は数個）
+        for version, p in state.adira_index[key].items():
             file_bytes = p.read_bytes()
             file_digest = "sha256:" + hashlib.sha256(file_bytes).hexdigest()
 
-            if fixed["vendor"] == vendor and fixed["artifact"] == artifact and file_digest == digest:
+            if file_digest == digest:
                 return FileResponse(p, filename=p.name)
 
     raise HTTPException(status_code=404, detail="Not found")
