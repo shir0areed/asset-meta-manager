@@ -270,21 +270,32 @@ class AppState:
         artifact = fixed["artifact"]
         version = fixed["version"]
 
-        # format は現在の database に設定されているもの
-        fmt = self.get_format()
+        # ADIRA 仕様では format は常に native
+        fmt = "native"
 
         # 依存IDは vendor-artifact（正規化なし）
         dep_id = f"{vendor}-{artifact}" if vendor else artifact
 
-        # TOML-ready dict を構築
+        # ★ アーカイブ形式の自動判定
+        transform = detect_archive_format(rel)
+
+        native_section = {}
+        if transform:
+            native_section["transform"] = transform
+
+        dep_entry = {
+            "vendor": vendor,
+            "artifact": artifact,
+            "version": version,
+            "format": fmt,
+        }
+
+        if native_section:
+            dep_entry["native"] = native_section
+
         return {
             "dependencies": {
-                dep_id: {
-                    "vendor": vendor,
-                    "artifact": artifact,
-                    "version": version,
-                    "format": fmt,
-                }
+                dep_id: dep_entry
             }
         }
 
@@ -338,3 +349,25 @@ def compute_fixed_categories(rel: Path, user_cat_count: int) -> dict:
         version = get_default_version()
 
     return {"vendor": vendor, "artifact": artifact, "version": version}
+
+def detect_archive_format(rel: Path) -> str | None:
+    # すべて小文字化
+    suffix = rel.suffix.lower()
+    suffixes = [s.lower() for s in rel.suffixes]
+
+    # 複合拡張子
+    if suffixes == [".tar", ".gz"]:
+        return "tgz"
+
+    # 単一拡張子
+    if suffix == ".zip":
+        return "zip"
+    if suffix == ".rar":
+        return "rar"
+    if suffix == ".lzh":
+        return "lzh"
+    if suffix == ".tgz":
+        return "tgz"
+
+    # raw（非アーカイブ）
+    return None
