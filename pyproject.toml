@@ -5,7 +5,7 @@ dependencies = [
     "fastapi",
     "uvicorn",
     "python-multipart",
-    "tomli_w",
+    "tomli-w",
 ]
 
 [tool.setuptools.packages.find]
