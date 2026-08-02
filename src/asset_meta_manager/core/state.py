@@ -299,6 +299,7 @@ class AppState:
         native_section = {}
         if transform:
             native_section["transform"] = transform
+            native_section.setdefault(transform, {})["strip_root"] = True
 
         dep_entry = {
             "vendor": vendor,
