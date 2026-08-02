@@ -18,7 +18,7 @@ def find_free_port():
 if __name__ == '__main__':
     script_dir = pathlib.Path(__file__).resolve().parent
     venv_dir = script_dir / 'venv'
-    wheel_dir = script_dir / 'wheel'
+    wheel_dir = script_dir
 
     port = find_free_port()
     server_proc = subprocess.Popen([
