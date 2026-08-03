@@ -25,9 +25,9 @@ class AppState:
         self.adira_index: Dict[Tuple[str, str], Dict[str, Path]] = {}
 
         self._load_database(database_path)
+        self._init_db()
         self._scan_files()
         self._ensure_meta_files()  # ★ STEP3
-        self._init_db()
 
     # ============================================================
     # カテゴリ列
