@@ -7,7 +7,7 @@ let sortColumn = null;   // "name", "cat_0", "ann_1" など
 let sortAsc = true;
 
 let currentPage = 1;
-const pageSize = 10;
+const pageSize = 30;
 
 // -----------------------------
 // データ取得
