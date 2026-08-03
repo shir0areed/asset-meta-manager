@@ -477,7 +477,7 @@ def load_databases_from_toml(toml_path: Path):
     managers = {}
     for key, entry in db_entries.items():
         p = Path(entry["path"])
-        managers[key] = AppState(database_path=p)
+        managers[key] = AppState(database_path=toml_path.parent / p)
 
     return managers
 
