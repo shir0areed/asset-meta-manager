@@ -89,14 +89,14 @@ function bindTableRowHandlers() {
     const tbody = document.getElementById("file-table");
     if (!tbody) return;
 
-    const params = new URLSearchParams(location.search);
-    const db = params.get("db");
 
     tbody.addEventListener("keydown", event => {
         const input = event.target;
         if (!input.matches(".edit-cell")) return;
 
         if (event.key === "Enter") {
+            const params = new URLSearchParams(location.search);
+            const db = params.get("db");
             saveValue(db, input.dataset.path, input.dataset.column, input.value);
             input.dataset.original = input.value;
             input.blur();
@@ -117,6 +117,8 @@ function bindTableRowHandlers() {
 
         const ok = confirm("変更を保存しますか？");
         if (ok) {
+            const params = new URLSearchParams(location.search);
+            const db = params.get("db");
             saveValue(db, input.dataset.path, input.dataset.column, newValue);
             input.dataset.original = input.value;
         } else {
@@ -128,6 +130,8 @@ function bindTableRowHandlers() {
         const deleteBtn = event.target.closest(".thumb-delete-btn");
         if (deleteBtn) {
             const path = deleteBtn.dataset.path;
+            const params = new URLSearchParams(location.search);
+            const db = params.get("db");
             await fetch("/meta/delete-thumbnail", {
                 method: "POST",
                 body: new URLSearchParams({ db, path })
@@ -147,6 +151,8 @@ function bindTableRowHandlers() {
 
                 const reader = new FileReader();
                 reader.onload = () => {
+                    const params = new URLSearchParams(location.search);
+                    const db = params.get("db");
                     saveThumbnail(db, thumbImg.dataset.path, reader.result);
                 };
                 reader.readAsDataURL(file);
@@ -174,6 +180,8 @@ function bindTableRowHandlers() {
                         const blob = await item.getType(type);
                         const reader = new FileReader();
                         reader.onload = () => {
+                            const params = new URLSearchParams(location.search);
+                            const db = params.get("db");
                             saveThumbnail(db, thumbImg.dataset.path, reader.result);
                         };
                         reader.readAsDataURL(blob);
